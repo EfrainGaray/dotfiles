@@ -1,0 +1,5 @@
+@angular/cli
+@nestjs/cli
+@ionic/cli
+typescript
+yarn
