@@ -15,4 +15,5 @@
     ~/.inputrc: shell/.inputrc
     ~/.gitignore_global: git/.gitignore_global
     ~/.gitconfig: git/.gitconfig
-    ~/.vim: editors/vim/.vim
+    ~/.vim: editors/vim/.vim/
+    ~/.vimrc: editors/vim/.vimrc
