@@ -1,0 +1,5 @@
+[user]
+	name = Efrain Garay
+	email = egaray7@gmail.com
+[core]
+	excludesfile = /Users/efraingaray/.gitignore_global
