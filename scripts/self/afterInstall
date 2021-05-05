@@ -1,0 +1,17 @@
+#!/usr/bin/env bash
+
+source "$DOTLY_PATH/scripts/core/_main.sh"
+source "$DOTFILES_PATH/scripts/core/fs"
+
+##? Adapt the current terminal to use develop dotly
+##?
+##? Usage:
+##?   afterinstall
+docs::parse "$@"
+
+
+output::answer "checking plugins vim"
+if ! fs::file_exists $DOTFILES_PATH/editors/vim/.vim/autoload/plug.vim; then
+    output::answer "installing plug.vim..."
+   /bin/bash -c "$(curl -fLo $DOTFILES_PATH/editors/vim/.vim/autoload/plug.vim --create-dirs https://raw.githubusercontent.com/junegunn/vim-plug/master/plug.vim)"
+fi

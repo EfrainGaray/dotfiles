@@ -15,3 +15,4 @@
     ~/.inputrc: shell/.inputrc
     ~/.gitignore_global: git/.gitignore_global
     ~/.gitconfig: git/.gitconfig
+    ~/.vim: editors/vim/.vim
