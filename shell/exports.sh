@@ -24,4 +24,9 @@ export path=(
   "/usr/bin"
   "/usr/sbin"
   "/sbin"
+  "/sbin/usr/local/opt/ruby/bin"
 )
+
+LDFLAGS=-L/usr/local/opt/ruby/lib
+CPPFLAGS=-I/usr/local/opt/ruby/include
+PKG_CONFIG_PATH=/usr/local/opt/ruby/lib/pkgconfig

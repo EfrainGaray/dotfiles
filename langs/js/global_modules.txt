@@ -3,3 +3,6 @@
 @ionic/cli
 typescript
 yarn
+n
+ios-sim
+surge
