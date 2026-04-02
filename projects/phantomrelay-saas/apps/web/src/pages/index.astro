@@ -1,0 +1,53 @@
+---
+import BaseLayout from "@/layouts/BaseLayout.astro";
+import "@/styles/globals.css";
+---
+
+<BaseLayout title="PhantomRelay">
+  <main class="flex min-h-screen flex-col items-center justify-center gap-8 p-8">
+    <div class="text-center">
+      <h1 class="font-display text-5xl font-bold tracking-tight">
+        Phantom<span class="text-primary">Relay</span>
+      </h1>
+      <p class="mt-4 text-lg text-muted-foreground">
+        Web scraping infrastructure that defeats anti-bot at every level.
+      </p>
+    </div>
+
+    <div class="flex gap-4">
+      <a
+        href="/dashboard"
+        class="inline-flex h-10 items-center rounded-md bg-gradient-to-br from-primary to-[#006df8] px-8 text-sm font-medium text-primary-foreground shadow transition-opacity hover:opacity-90 dark:from-[#568dff] dark:to-[#b0c6ff] dark:text-[#002661]"
+      >
+        Open Dashboard
+      </a>
+      <a
+        href="#"
+        class="inline-flex h-10 items-center rounded-md border border-border px-8 text-sm font-medium shadow-sm transition-colors hover:bg-accent"
+      >
+        View Docs
+      </a>
+    </div>
+
+    <div class="grid grid-cols-1 gap-6 md:grid-cols-3 mt-12 max-w-4xl">
+      <div class="rounded-xl bg-card p-6 shadow-sm dark:shadow-[0_20px_40px_rgba(11,14,20,0.4)]">
+        <h3 class="font-display text-lg font-semibold">5 Evasion Modes</h3>
+        <p class="mt-2 text-sm text-muted-foreground">
+          From HTTP fingerprinting to full behavioral simulation with aged profiles.
+        </p>
+      </div>
+      <div class="rounded-xl bg-card p-6 shadow-sm dark:shadow-[0_20px_40px_rgba(11,14,20,0.4)]">
+        <h3 class="font-display text-lg font-semibold">Visual Wizard</h3>
+        <p class="mt-2 text-sm text-muted-foreground">
+          Configure scrapers step-by-step. No code required. Schedule and monitor.
+        </p>
+      </div>
+      <div class="rounded-xl bg-card p-6 shadow-sm dark:shadow-[0_20px_40px_rgba(11,14,20,0.4)]">
+        <h3 class="font-display text-lg font-semibold">Smart Escalation</h3>
+        <p class="mt-2 text-sm text-muted-foreground">
+          Auto mode detects blocks and escalates through modes until it succeeds.
+        </p>
+      </div>
+    </div>
+  </main>
+</BaseLayout>

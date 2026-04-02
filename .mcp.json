@@ -4,7 +4,9 @@
       "command": "npx",
       "args": ["-y", "stitch-mcp"],
       "env": {
-        "STITCH_API_KEY": "${STITCH_API_KEY}"
+        "STITCH_API_KEY": "${STITCH_API_KEY}",
+        "GOOGLE_CLOUD_PROJECT": "operating-realm-488304-c7",
+        "PATH": "/usr/local/share/google-cloud-sdk/bin:/usr/local/bin:/usr/bin:/bin"
       }
     }
   }

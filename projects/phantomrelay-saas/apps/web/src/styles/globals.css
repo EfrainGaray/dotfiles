@@ -1,0 +1,145 @@
+@import "tailwindcss";
+
+@custom-variant dark (&:is(.dark *));
+
+@font-face {
+  font-family: "Manrope";
+  font-style: normal;
+  font-display: swap;
+  src: url("https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap");
+}
+
+@font-face {
+  font-family: "Inter";
+  font-style: normal;
+  font-display: swap;
+  src: url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap");
+}
+
+/*
+ * PhantomRelay Design System
+ * Dark: "Phantom Deep" — dark navy + electric blue + glassmorphism
+ * Light: "Phantom Obsidian" — clean white + blue accent + editorial
+ */
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Manrope", ui-sans-serif, system-ui, sans-serif;
+}
+
+/* ── Light Theme: Phantom Obsidian ── */
+:root {
+  --radius: 0.75rem;
+  --background: #f8f9fb;
+  --foreground: #191c1e;
+  --card: #ffffff;
+  --card-foreground: #191c1e;
+  --popover: #ffffff;
+  --popover-foreground: #191c1e;
+  --primary: #0056c6;
+  --primary-foreground: #ffffff;
+  --secondary: #f2f4f6;
+  --secondary-foreground: #191c1e;
+  --muted: #edeef0;
+  --muted-foreground: #424655;
+  --accent: #e7e8ea;
+  --accent-foreground: #191c1e;
+  --destructive: #ba1a1a;
+  --destructive-foreground: #ffffff;
+  --border: rgba(194, 198, 216, 0.2);
+  --input: #e1e2e4;
+  --ring: #0056c6;
+  --sidebar: #f2f4f6;
+  --sidebar-foreground: #191c1e;
+  --sidebar-accent: #e7e8ea;
+  --sidebar-accent-foreground: #0056c6;
+  --sidebar-border: rgba(194, 198, 216, 0.15);
+  --chart-1: #0056c6;
+  --chart-2: #415d9b;
+  --chart-3: #a23900;
+  --chart-4: #006df8;
+  --chart-5: #9fbaff;
+}
+
+/* ── Dark Theme: Phantom Deep ── */
+.dark {
+  --background: #10131a;
+  --foreground: #e1e2eb;
+  --card: #1d2026;
+  --card-foreground: #e1e2eb;
+  --popover: #1d2026;
+  --popover-foreground: #e1e2eb;
+  --primary: #568dff;
+  --primary-foreground: #002661;
+  --secondary: #272a31;
+  --secondary-foreground: #e1e2eb;
+  --muted: #32353c;
+  --muted-foreground: #c2c6d8;
+  --accent: #363940;
+  --accent-foreground: #e1e2eb;
+  --destructive: #ffb4ab;
+  --destructive-foreground: #690005;
+  --border: rgba(66, 70, 85, 0.3);
+  --input: #32353c;
+  --ring: #568dff;
+  --sidebar: #191c22;
+  --sidebar-foreground: #e1e2eb;
+  --sidebar-accent: #272a31;
+  --sidebar-accent-foreground: #b0c6ff;
+  --sidebar-border: rgba(66, 70, 85, 0.2);
+  --chart-1: #568dff;
+  --chart-2: #00e3fd;
+  --chart-3: #f36420;
+  --chart-4: #b0c6ff;
+  --chart-5: #bdf4ff;
+}
+
+/* ── Base Styles ── */
+* {
+  border-color: var(--border);
+}
+
+body {
+  background-color: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-display);
+}
