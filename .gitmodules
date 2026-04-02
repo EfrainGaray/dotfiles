@@ -1,3 +1,6 @@
 [submodule "projects/phantomrelay"]
 	path = projects/phantomrelay
 	url = https://github.com/EfrainGaray/phantomrelay.git
+[submodule "projects/agatha"]
+	path = projects/agatha
+	url = https://github.com/EfrainGaray/agatha.git
