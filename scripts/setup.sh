@@ -12,7 +12,7 @@ echo ""
 # Git config
 echo "--- Configurando Git ---"
 git config --global user.name "Efrain Garay"
-git config --global user.email "tu@email.com"
+git config --global user.email "efrain@tudominio.com"
 git config --global core.editor "code --wait"
 git config --global init.defaultBranch main
 git config --global pull.rebase true
@@ -54,6 +54,14 @@ if command -v docker &> /dev/null; then
     echo "  [MISSING] docker buildx — Necesario para builds multi-arch"
   fi
 fi
+if command -v docker &> /dev/null && docker buildx version &> /dev/null; then
+  if ! docker buildx ls | grep -q "multiarch"; then
+    docker buildx create --name multiarch --use
+    echo "  [OK]      Builder multiarch creado"
+  else
+    echo "  [OK]      Builder multiarch ya existe"
+  fi
+fi
 echo ""
 
 echo "Rust:"
@@ -70,6 +78,13 @@ echo ""
 
 echo "Go:"
 check_tool go "Go compiler"
+if command -v go &> /dev/null; then
+  if command -v govulncheck &> /dev/null; then
+    echo "  [OK]      govulncheck — $(govulncheck -version 2>&1 | head -1)"
+  else
+    echo "  [MISSING] govulncheck — Instalar: go install golang.org/x/vuln/cmd/govulncheck@latest"
+  fi
+fi
 echo ""
 
 echo "Node.js:"
