@@ -155,6 +155,16 @@ ENTRYPOINT ["/usr/local/bin/binary"]
 
 ---
 
+## Tareas largas
+
+- Commit atómico después de cada paso completado — nunca al final de todo
+- Si la tarea tiene más de 5 pasos, crear `WIP.md` primero con el plan completo
+- Actualizar `WIP.md` al completar cada paso
+- Si la sesión se interrumpe, retomar con: `lee WIP.md y continúa desde donde quedaste`
+- Eliminar `WIP.md` solo cuando la tarea esté 100% completa y commiteada
+
+---
+
 ## Pipeline CI/CD — GitHub Actions
 
 Todo proyecto debe cubrir en este orden:
