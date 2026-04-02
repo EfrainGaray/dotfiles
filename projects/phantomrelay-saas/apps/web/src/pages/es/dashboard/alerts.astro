@@ -1,0 +1,8 @@
+---
+import DashboardLayout from "@/layouts/DashboardLayout.astro";
+import { AlertsPage } from "@/components/dashboard/alerts";
+import "@/styles/globals.css";
+---
+<DashboardLayout title="Alerts">
+  <AlertsPage client:load />
+</DashboardLayout>

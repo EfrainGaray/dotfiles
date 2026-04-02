@@ -1,0 +1,8 @@
+---
+import DashboardLayout from "@/layouts/DashboardLayout.astro";
+import { BillingPage } from "@/components/dashboard/billing";
+import "@/styles/globals.css";
+---
+<DashboardLayout title="Billing">
+  <BillingPage client:load />
+</DashboardLayout>

@@ -1,0 +1,12 @@
+---
+import DashboardLayout from "@/layouts/DashboardLayout.astro";
+import { DashboardOverview } from "@/components/dashboard/overview";
+import { getLocaleFromUrl } from "@/i18n/translations";
+import "@/styles/globals.css";
+
+const locale = getLocaleFromUrl(Astro.url);
+---
+
+<DashboardLayout title="Dashboard">
+  <DashboardOverview client:load locale={locale} />
+</DashboardLayout>

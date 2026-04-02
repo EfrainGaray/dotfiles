@@ -1,0 +1,9 @@
+---
+import DashboardLayout from "@/layouts/DashboardLayout.astro";
+import { DashboardOverview } from "@/components/dashboard/overview";
+import "@/styles/globals.css";
+---
+
+<DashboardLayout title="Dashboard">
+  <DashboardOverview client:load locale="es" />
+</DashboardLayout>

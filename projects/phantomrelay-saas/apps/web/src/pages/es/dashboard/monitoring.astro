@@ -1,0 +1,8 @@
+---
+import DashboardLayout from "@/layouts/DashboardLayout.astro";
+import { MonitoringDashboard } from "@/components/dashboard/monitoring";
+import "@/styles/globals.css";
+---
+<DashboardLayout title="Monitoring">
+  <MonitoringDashboard client:load />
+</DashboardLayout>

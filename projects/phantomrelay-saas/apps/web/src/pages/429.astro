@@ -1,0 +1,36 @@
+---
+import BaseLayout from "@/layouts/BaseLayout.astro";
+import { getLocaleFromUrl } from "@/i18n/translations";
+import "@/styles/globals.css";
+
+const locale = getLocaleFromUrl(Astro.url);
+const isEs = locale === "es";
+---
+
+<BaseLayout title={isEs ? "Demasiadas solicitudes" : "Too Many Requests"}>
+  <div class="flex min-h-screen flex-col items-center justify-center px-4 text-center">
+    <p class="text-7xl font-bold tracking-tight text-warning/30">429</p>
+    <h1 class="mt-4 text-2xl font-semibold tracking-tight">
+      {isEs ? "Demasiadas solicitudes" : "Too many requests"}
+    </h1>
+    <p class="mt-2 text-sm text-muted-foreground max-w-md">
+      {isEs
+        ? "Has alcanzado el límite de solicitudes. Espera un momento antes de intentar de nuevo, o considera actualizar tu plan."
+        : "You've hit the rate limit. Wait a moment before trying again, or consider upgrading your plan."}
+    </p>
+    <div class="mt-6 flex gap-3">
+      <button
+        onclick="window.location.reload()"
+        class="flex h-8 items-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+      >
+        {isEs ? "Reintentar" : "Try again"}
+      </button>
+      <a
+        href={isEs ? "/es/dashboard/billing" : "/dashboard/billing"}
+        class="flex h-8 items-center rounded-md border border-border px-4 text-sm font-medium transition-colors hover:bg-accent"
+      >
+        {isEs ? "Ver planes" : "View plans"}
+      </a>
+    </div>
+  </div>
+</BaseLayout>
