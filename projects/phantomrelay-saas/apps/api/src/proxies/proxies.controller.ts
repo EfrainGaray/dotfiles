@@ -11,6 +11,9 @@ import {
 } from '@nestjs/common';
 import { ProxiesService } from './proxies.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { CreateProxyPoolDto } from './dto/create-proxy-pool.dto';
+import { UpdateProxyPoolDto } from './dto/update-proxy-pool.dto';
+import { AddProxyDto } from './dto/add-proxy.dto';
 
 @UseGuards(JwtAuthGuard)
 @Controller('proxies')
@@ -20,9 +23,9 @@ export class ProxiesController {
   @Post()
   create(
     @Request() req: { user: { userId: string } },
-    @Body() body: { name: string; description?: string; proxies: { url: string; protocol: 'HTTP' | 'HTTPS' | 'SOCKS5' }[] },
+    @Body() dto: CreateProxyPoolDto,
   ) {
-    return this.proxiesService.create(req.user.userId, body);
+    return this.proxiesService.create(req.user.userId, dto);
   }
 
   @Get()
@@ -47,9 +50,9 @@ export class ProxiesController {
   update(
     @Param('id') id: string,
     @Request() req: { user: { userId: string } },
-    @Body() body: { name?: string; description?: string },
+    @Body() dto: UpdateProxyPoolDto,
   ) {
-    return this.proxiesService.update(id, req.user.userId, body);
+    return this.proxiesService.update(id, req.user.userId, dto);
   }
 
   @Delete(':id')
@@ -58,5 +61,22 @@ export class ProxiesController {
     @Request() req: { user: { userId: string } },
   ) {
     return this.proxiesService.remove(id, req.user.userId);
+  }
+
+  @Post(':poolId/proxies')
+  addProxy(
+    @Param('poolId') poolId: string,
+    @Body() dto: AddProxyDto,
+    @Request() req: { user: { userId: string } },
+  ) {
+    return this.proxiesService.addProxy(poolId, req.user.userId, dto);
+  }
+
+  @Post(':id/test')
+  testProxy(
+    @Param('id') id: string,
+    @Request() req: { user: { userId: string } },
+  ) {
+    return this.proxiesService.testProxy(id, req.user.userId);
   }
 }

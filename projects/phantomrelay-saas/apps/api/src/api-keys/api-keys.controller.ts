@@ -10,6 +10,7 @@ import {
 } from '@nestjs/common';
 import { ApiKeysService } from './api-keys.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { CreateApiKeyDto } from './dto/create-api-key.dto';
 
 @UseGuards(JwtAuthGuard)
 @Controller('api-keys')
@@ -19,9 +20,9 @@ export class ApiKeysController {
   @Post()
   generate(
     @Request() req: { user: { userId: string } },
-    @Body() body: { name: string },
+    @Body() dto: CreateApiKeyDto,
   ) {
-    return this.apiKeysService.generate(req.user.userId, body.name);
+    return this.apiKeysService.generate(req.user.userId, dto.name);
   }
 
   @Get()

@@ -1,5 +1,6 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, ForbiddenException, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { AddProxyDto } from './dto/add-proxy.dto';
 
 @Injectable()
 export class ProxiesService {
@@ -61,6 +62,65 @@ export class ProxiesService {
     return this.prisma.proxyPool.delete({
       where: { id },
     });
+  }
+
+  async addProxy(poolId: string, userId: string, data: AddProxyDto) {
+    const pool = await this.prisma.proxyPool.findFirst({
+      where: { id: poolId, userId },
+    });
+
+    if (!pool) {
+      throw new ForbiddenException('Proxy pool not found or access denied');
+    }
+
+    return this.prisma.proxy.create({
+      data: {
+        poolId,
+        url: data.url,
+        protocol: data.protocol,
+      },
+    });
+  }
+
+  async testProxy(id: string, userId: string): Promise<{ healthy: boolean; latencyMs: number }> {
+    const proxy = await this.prisma.proxy.findFirst({
+      where: { id },
+      include: { pool: true },
+    });
+
+    if (!proxy || proxy.pool.userId !== userId) {
+      throw new ForbiddenException('Proxy not found or access denied');
+    }
+
+    const start = Date.now();
+    let healthy = false;
+
+    try {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 5000);
+
+      await fetch('https://httpbin.org/ip', {
+        signal: controller.signal,
+      });
+
+      clearTimeout(timeout);
+      healthy = true;
+    } catch {
+      healthy = false;
+    }
+
+    const latencyMs = Date.now() - start;
+
+    await this.prisma.proxy.update({
+      where: { id },
+      data: {
+        healthScore: healthy ? 1.0 : Math.max(0, proxy.healthScore - 0.2),
+        lastCheckedAt: new Date(),
+        failCount: healthy ? proxy.failCount : proxy.failCount + 1,
+      },
+    });
+
+    return { healthy, latencyMs };
   }
 
   async findAllWithDetails(userId: string) {
