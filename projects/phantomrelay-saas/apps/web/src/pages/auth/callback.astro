@@ -17,17 +17,15 @@ import "@/styles/globals.css";
   </div>
 
   <script>
-    const TOKEN_KEY = "auth-token";
-
+    // Token is now delivered as an httpOnly cookie by the server — no URL param needed.
+    // If there's an explicit error param, surface it; otherwise go to dashboard.
     const params = new URLSearchParams(window.location.search);
-    const token = params.get("token");
+    const error = params.get("error");
 
-    if (token) {
-      localStorage.setItem(TOKEN_KEY, token);
-      document.cookie = `${TOKEN_KEY}=${token}; path=/; max-age=${60 * 60 * 24 * 7}; SameSite=Lax`;
-      window.location.href = "/dashboard";
+    if (error) {
+      window.location.href = `/login?error=${encodeURIComponent(error)}`;
     } else {
-      window.location.href = "/login?error=oauth_failed";
+      window.location.href = "/dashboard";
     }
   </script>
 </BaseLayout>

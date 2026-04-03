@@ -1,5 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { ExecutionContext, UnauthorizedException, ConflictException } from '@nestjs/common';
+import { ThrottlerGuard } from '@nestjs/throttler';
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
 import { ConfigService } from '@nestjs/config';
@@ -14,7 +15,13 @@ const mockAuthService = {
 
 const mockConfigService = {
   get: jest.fn().mockReturnValue('http://localhost:4321'),
+  getOrThrow: jest.fn().mockReturnValue('http://localhost:4321'),
 };
+
+const mockResponse = {
+  cookie: jest.fn(),
+  redirect: jest.fn(),
+} as unknown as import('express').Response;
 
 // Guard that always allows the request through (simulates authenticated user)
 class AllowGuard {
@@ -37,6 +44,7 @@ describe('AuthController', () => {
 
   beforeEach(async () => {
     jest.clearAllMocks();
+    (mockResponse.cookie as jest.Mock).mockClear();
 
     const module: TestingModule = await Test.createTestingModule({
       controllers: [AuthController],
@@ -49,13 +57,15 @@ describe('AuthController', () => {
       .useClass(AllowGuard)
       .overrideGuard(JwtAuthGuard)
       .useClass(AllowGuard)
+      .overrideGuard(ThrottlerGuard)
+      .useClass(AllowGuard)
       .compile();
 
     controller = module.get<AuthController>(AuthController);
   });
 
   describe('login', () => {
-    it('should return JWT when credentials are valid', async () => {
+    it('should return JWT and set httpOnly cookie when credentials are valid', async () => {
       const expectedResponse = {
         accessToken: 'mock-jwt-token',
         user: { id: 'user-1', email: 'test@example.com' },
@@ -63,11 +73,21 @@ describe('AuthController', () => {
       mockAuthService.login.mockResolvedValue(expectedResponse);
 
       const req = { user: { id: 'user-1', email: 'test@example.com' } };
-      const result = await controller.login(req as { user: { id: string; email: string } });
+      const dto = { email: 'test@example.com', password: 'password123' };
+      const result = await controller.login(
+        req as { user: { id: string; email: string } },
+        mockResponse,
+        dto as import('./dto/login.dto').LoginDto,
+      );
 
       expect(mockAuthService.login).toHaveBeenCalledWith(req.user);
       expect(result).toHaveProperty('accessToken', 'mock-jwt-token');
       expect(result).toHaveProperty('user');
+      expect(mockResponse.cookie).toHaveBeenCalledWith(
+        'access_token',
+        'mock-jwt-token',
+        expect.objectContaining({ httpOnly: true }),
+      );
     });
   });
 
@@ -76,25 +96,30 @@ describe('AuthController', () => {
       mockAuthService.login.mockRejectedValue(new UnauthorizedException('Invalid credentials'));
 
       const req = { user: { id: 'user-bad', email: 'bad@example.com' } };
+      const dto = { email: 'bad@example.com', password: 'wrong' };
       await expect(
-        controller.login(req as { user: { id: string; email: string } }),
+        controller.login(
+          req as { user: { id: string; email: string } },
+          mockResponse,
+          dto as import('./dto/login.dto').LoginDto,
+        ),
       ).rejects.toThrow(UnauthorizedException);
     });
   });
 
   describe('register', () => {
-    it('should create a new user and return 201 with JWT', async () => {
+    it('should create a new user, return JWT, and set httpOnly cookie', async () => {
       const expectedResponse = {
         accessToken: 'new-jwt-token',
         user: { id: 'user-new', email: 'new@example.com', name: 'New User' },
       };
       mockAuthService.register.mockResolvedValue(expectedResponse);
 
-      const result = await controller.register({
-        email: 'new@example.com',
-        password: 'password123',
-        name: 'New User',
-      });
+      const dto = { email: 'new@example.com', password: 'password123', name: 'New User' };
+      const result = await controller.register(
+        dto as import('./dto/register.dto').RegisterDto,
+        mockResponse,
+      );
 
       expect(mockAuthService.register).toHaveBeenCalledWith(
         'new@example.com',
@@ -103,6 +128,11 @@ describe('AuthController', () => {
       );
       expect(result).toHaveProperty('accessToken');
       expect(result.user).toHaveProperty('email', 'new@example.com');
+      expect(mockResponse.cookie).toHaveBeenCalledWith(
+        'access_token',
+        'new-jwt-token',
+        expect.objectContaining({ httpOnly: true }),
+      );
     });
 
     it('should propagate ConflictException for duplicate email', async () => {
@@ -110,12 +140,12 @@ describe('AuthController', () => {
         new ConflictException('Email already registered'),
       );
 
+      const dto = { email: 'existing@example.com', password: 'password123', name: 'Duplicate' };
       await expect(
-        controller.register({
-          email: 'existing@example.com',
-          password: 'password123',
-          name: 'Duplicate',
-        }),
+        controller.register(
+          dto as import('./dto/register.dto').RegisterDto,
+          mockResponse,
+        ),
       ).rejects.toThrow(ConflictException);
     });
   });

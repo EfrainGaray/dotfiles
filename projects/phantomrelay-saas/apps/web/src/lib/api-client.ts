@@ -71,6 +71,7 @@ async function apiFetch<T>(
   const response = await fetch(`${BASE_URL()}${path}`, {
     ...options,
     headers,
+    credentials: 'include',
   });
 
   if (response.status === 401) {
