@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
-import { ConfigModule } from '@nestjs/config';
+import { ConfigModule, ConfigService } from '@nestjs/config';
+import { BullModule } from '@nestjs/bullmq';
 import { PrismaModule } from './prisma/prisma.module';
 import { AuthModule } from './auth/auth.module';
 import { ScrapersModule } from './scrapers/scrapers.module';
@@ -11,10 +12,19 @@ import { NotificationsModule } from './notifications/notifications.module';
 import { MonitoringModule } from './monitoring/monitoring.module';
 import { ProxiesModule } from './proxies/proxies.module';
 import { ApiKeysModule } from './api-keys/api-keys.module';
+import { EventsModule } from './common/events/events.module';
 
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
+    BullModule.forRootAsync({
+      inject: [ConfigService],
+      useFactory: (config: ConfigService) => ({
+        connection: {
+          url: config.get<string>('REDIS_URL', 'redis://localhost:6379'),
+        },
+      }),
+    }),
     PrismaModule,
     AuthModule,
     ScrapersModule,
@@ -26,6 +36,7 @@ import { ApiKeysModule } from './api-keys/api-keys.module';
     MonitoringModule,
     ProxiesModule,
     ApiKeysModule,
+    EventsModule,
   ],
 })
 export class AppModule {}

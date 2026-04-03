@@ -1,6 +1,7 @@
 ---
 import BaseLayout from "@/layouts/BaseLayout.astro";
 import { t, getLocalizedPath } from "@/i18n/translations";
+import { SignupForm } from "@/components/auth/signup-form";
 import "@/styles/globals.css";
 
 const locale = "en" as const;
@@ -40,30 +41,7 @@ const l = (key: Parameters<typeof t>[1]) => t(locale, key);
           <p class="mt-1 text-sm text-muted-foreground">{l("auth.signupSubtitle")}</p>
         </div>
 
-        <form class="space-y-4" action="/api/auth/signup" method="POST">
-          <div class="space-y-1.5">
-            <label for="name" class="text-sm font-medium text-foreground">{l("auth.name")}</label>
-            <input id="name" name="name" type="text" placeholder={l("auth.namePlaceholder")} required class="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1.5 text-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring" />
-          </div>
-          <div class="space-y-1.5">
-            <label for="email" class="text-sm font-medium text-foreground">{l("auth.email")}</label>
-            <input id="email" name="email" type="email" placeholder="you@example.com" required class="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1.5 text-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring" />
-          </div>
-          <div class="space-y-1.5">
-            <label for="password" class="text-sm font-medium text-foreground">{l("auth.password")}</label>
-            <input id="password" name="password" type="password" placeholder={l("auth.createPassword")} required minlength="8" class="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1.5 text-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring" />
-            <p class="text-xs text-muted-foreground">{l("auth.minChars")}</p>
-          </div>
-          <div class="flex items-start gap-2">
-            <input id="terms" name="terms" type="checkbox" required class="mt-1 h-3.5 w-3.5 rounded border-input" />
-            <label for="terms" class="text-xs text-muted-foreground">
-              {l("auth.terms")} <a href="/terms" class="text-primary hover:underline">{l("auth.termsLink")}</a> {l("auth.and")} <a href="/privacy" class="text-primary hover:underline">{l("auth.privacyLink")}</a>
-            </label>
-          </div>
-          <button type="submit" class="flex h-9 w-full items-center justify-center rounded-md bg-primary text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90">
-            {l("auth.createBtn")}
-          </button>
-        </form>
+        <SignupForm locale="en" client:load />
 
         <div class="relative">
           <div class="absolute inset-0 flex items-center"><div class="w-full border-t border-border"></div></div>
