@@ -126,6 +126,42 @@ describe('AuthService', () => {
     });
   });
 
+  describe('validateUser — missing user', () => {
+    it('should throw UnauthorizedException when user does not exist', async () => {
+      mockPrisma.user.findUnique.mockResolvedValue(null);
+
+      await expect(
+        service.validateUser('notfound@example.com', 'any-password'),
+      ).rejects.toThrow(UnauthorizedException);
+    });
+  });
+
+  describe('getProfile', () => {
+    it('should return user profile without passwordHash', async () => {
+      mockPrisma.user.findUnique.mockResolvedValue({
+        id: 'user-1',
+        email: 'test@example.com',
+        name: 'Test User',
+        avatarUrl: null,
+        provider: null,
+        createdAt: new Date('2024-01-01'),
+        plan: { name: 'free', requestsPerMonth: 100, maxScrapers: 3 },
+      });
+
+      const result = await service.getProfile('user-1');
+
+      expect(result).toHaveProperty('id', 'user-1');
+      expect(result).toHaveProperty('plan');
+      expect(result).not.toHaveProperty('passwordHash');
+    });
+
+    it('should throw UnauthorizedException when user is not found', async () => {
+      mockPrisma.user.findUnique.mockResolvedValue(null);
+
+      await expect(service.getProfile('nonexistent-id')).rejects.toThrow(UnauthorizedException);
+    });
+  });
+
   describe('findOrCreateOAuthUser', () => {
     it('should create a new user when no match found', async () => {
       mockPrisma.user.findFirst.mockResolvedValue(null);
