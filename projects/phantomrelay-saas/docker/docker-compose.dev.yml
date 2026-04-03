@@ -1,0 +1,40 @@
+# PhantomRelay SaaS — Infrastructure only (postgres + redis)
+# Use this when developing web/api locally without containers
+# Usage: docker compose -f docker/docker-compose.dev.yml up -d
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: phantomrelay-postgres
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: phantom
+      POSTGRES_PASSWORD: phantom_dev
+      POSTGRES_DB: phantomrelay
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U phantom -d phantomrelay"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    container_name: phantomrelay-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redisdata:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    restart: unless-stopped
+
+volumes:
+  pgdata:
+  redisdata:

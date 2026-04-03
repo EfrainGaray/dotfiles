@@ -1,0 +1,247 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─── Enums ───────────────────────────────────────────────
+
+enum AuthProvider {
+  EMAIL
+  GOOGLE
+  GITHUB
+}
+
+enum ScraperMode {
+  HTTP
+  HEADLESS
+  STEALTH
+  HUMAN
+  AUTO
+}
+
+enum ScraperStatus {
+  ACTIVE
+  PAUSED
+  ERROR
+  ARCHIVED
+}
+
+enum ScheduleType {
+  ONCE
+  CRON
+  INTERVAL
+}
+
+enum RunStatus {
+  PENDING
+  RUNNING
+  SUCCESS
+  FAILED
+  TIMEOUT
+}
+
+enum ProxyProtocol {
+  HTTP
+  HTTPS
+  SOCKS5
+}
+
+enum NotificationType {
+  INFO
+  WARNING
+  ERROR
+  SUCCESS
+}
+
+// ─── Models ──────────────────────────────────────────────
+
+model Plan {
+  id              String   @id @default(uuid()) @db.Uuid
+  name            String   @unique // free | pro | enterprise
+  price           Int      // cents
+  requestsPerMonth Int
+  maxScrapers     Int
+  maxConcurrent   Int
+  features        Json
+  createdAt       DateTime @default(now())
+
+  users User[]
+}
+
+model User {
+  id               String       @id @default(uuid()) @db.Uuid
+  email            String       @unique
+  passwordHash     String?
+  name             String?
+  avatarUrl        String?
+  provider         AuthProvider @default(EMAIL)
+  providerId       String?
+  planId           String       @db.Uuid
+  stripeCustomerId String?
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+
+  plan          Plan           @relation(fields: [planId], references: [id])
+  apiKeys       ApiKey[]
+  scrapers      Scraper[]
+  proxyPools    ProxyPool[]
+  notifications Notification[]
+  usageRecords  UsageRecord[]
+  sessions      Session[]
+}
+
+model ApiKey {
+  id         String    @id @default(uuid()) @db.Uuid
+  userId     String    @db.Uuid
+  name       String
+  prefix     String    // first 8 chars visible
+  keyHash    String    @unique // SHA-256
+  lastUsedAt DateTime?
+  expiresAt  DateTime?
+  revokedAt  DateTime?
+  createdAt  DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([keyHash])
+}
+
+model Scraper {
+  id        String        @id @default(uuid()) @db.Uuid
+  userId    String        @db.Uuid
+  name      String
+  url       String
+  mode      ScraperMode
+  config    Json          // full TaskOptions
+  status    ScraperStatus @default(ACTIVE)
+  lastRunAt DateTime?
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+
+  user     User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  schedule Schedule?
+  runs     Run[]
+  webhooks ScraperWebhook[]
+
+  @@index([userId, status])
+}
+
+model Schedule {
+  id         String       @id @default(uuid()) @db.Uuid
+  scraperId  String       @unique @db.Uuid
+  type       ScheduleType
+  cron       String?
+  intervalMs Int?
+  runWindow  Json?
+  nextRunAt  DateTime?
+  enabled    Boolean      @default(true)
+  createdAt  DateTime     @default(now())
+  updatedAt  DateTime     @updatedAt
+
+  scraper Scraper @relation(fields: [scraperId], references: [id], onDelete: Cascade)
+}
+
+model Run {
+  id               String      @id @default(uuid()) @db.Uuid
+  scraperId        String      @db.Uuid
+  status           RunStatus   @default(PENDING)
+  mode             ScraperMode
+  latencyMs        Int?
+  resultHtml       String?     @db.Text
+  resultText       String?     @db.Text
+  screenshotUrl    String?
+  harData          Json?
+  detectionSignals Json?
+  errorCode        String?
+  errorMessage     String?
+  startedAt        DateTime?
+  completedAt      DateTime?
+  createdAt        DateTime    @default(now())
+
+  scraper Scraper @relation(fields: [scraperId], references: [id], onDelete: Cascade)
+
+  @@index([scraperId, createdAt])
+  @@index([status])
+}
+
+model ProxyPool {
+  id          String   @id @default(uuid()) @db.Uuid
+  userId      String   @db.Uuid
+  name        String
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  proxies Proxy[]
+}
+
+model Proxy {
+  id            String        @id @default(uuid()) @db.Uuid
+  poolId        String        @db.Uuid
+  url           String
+  protocol      ProxyProtocol
+  healthScore   Float         @default(1.0)
+  lastCheckedAt DateTime?
+  failCount     Int           @default(0)
+  createdAt     DateTime      @default(now())
+
+  pool ProxyPool @relation(fields: [poolId], references: [id], onDelete: Cascade)
+}
+
+model ScraperWebhook {
+  id        String   @id @default(uuid()) @db.Uuid
+  scraperId String   @db.Uuid
+  url       String
+  events    String[] // array of event names
+  secret    String   // HMAC secret
+  enabled   Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  scraper Scraper @relation(fields: [scraperId], references: [id], onDelete: Cascade)
+}
+
+model Notification {
+  id        String           @id @default(uuid()) @db.Uuid
+  userId    String           @db.Uuid
+  type      NotificationType
+  title     String
+  message   String
+  read      Boolean          @default(false)
+  link      String?
+  createdAt DateTime         @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, read])
+}
+
+model UsageRecord {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @db.Uuid
+  period    String   // "2024-01"
+  requests  Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, period])
+  @@index([userId, period])
+}
+
+model Session {
+  id           String   @id @default(uuid()) @db.Uuid
+  userId       String   @db.Uuid
+  refreshToken String   @unique
+  expiresAt    DateTime
+  createdAt    DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([refreshToken])
+}
