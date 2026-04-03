@@ -207,7 +207,6 @@ Cache de BuildKit en Actions con `cache-from` / `cache-to`.
 | `@docker-engineer` | Multi-stage, multi-arch, BuildKit, distroless, capas |
 | `@devops` | GitHub Actions, CI/CD, Kubernetes, Docker Swarm |
 | `@reviewer` | Code review adaptado a la fase actual del proyecto |
-| `@design-engineer` | UX/UI, design systems, Google Stitch MCP, design-to-code |
 | `@security` | SAST, OWASP, audit de deps, secrets, image scanning |
 
 ---
@@ -217,7 +216,6 @@ Cache de BuildKit en Actions con `cache-from` / `cache-to`.
 ```
 dotfiles/
 ├── CLAUDE.md                  ← este archivo
-├── .mcp.json                  ← MCP servers (Stitch, etc.)
 ├── claude/
 │   ├── agents/                ← definición de cada agente
 │   │   ├── architect.md
@@ -231,7 +229,6 @@ dotfiles/
 │   │   ├── steganography-engineer.md
 │   │   ├── docker-engineer.md
 │   │   ├── devops.md
-│   │   ├── design-engineer.md
 │   │   ├── reviewer.md
 │   │   └── security.md
 │   └── commands/              ← comandos slash personalizados
