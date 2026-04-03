@@ -208,6 +208,33 @@ Cache de BuildKit en Actions con `cache-from` / `cache-to`.
 | `@devops` | GitHub Actions, CI/CD, Kubernetes, Docker Swarm |
 | `@reviewer` | Code review adaptado a la fase actual del proyecto |
 | `@security` | SAST, OWASP, audit de deps, secrets, image scanning |
+| `@qa-engineer` | QA automatizado con PhantomRelay, browser testing, GitHub Issues reporter |
+
+---
+
+## MCP Servers disponibles
+
+### `hostinger-mcp` — Gestión de infraestructura Hostinger
+
+Servidor MCP conectado a la API de Hostinger. Úsalo para gestionar VPS, dominios, DNS y hosting directamente desde Claude Code sin salir del flujo de trabajo.
+
+**Capacidades principales:**
+
+| Área | Qué puedes hacer |
+|---|---|
+| **VPS** | Crear, arrancar, detener, reiniciar, recrear VMs · gestionar snapshots, backups, firewall, PTR records, métricas, recovery mode |
+| **DNS** | Leer, crear, actualizar y eliminar registros DNS · snapshots y restauraciones de zona |
+| **Dominios** | Listar dominios, comprar, actualizar nameservers, forwarding, WHOIS profiles, privacy protection, domain lock |
+| **Hosting** | Crear sitios, desplegar apps JS/estáticos/WordPress, importar WordPress, subdominios gratuitos |
+| **Billing** | Ver suscripciones, métodos de pago, catálogo de servicios, auto-renovación |
+
+**Cuándo usarlo:**
+- Provisionar o destruir VPS para un nuevo proyecto
+- Gestionar registros DNS al configurar un dominio
+- Desplegar sitios estáticos o apps JS directamente
+- Revisar el estado de infraestructura sin abrir el panel de Hostinger
+
+**Agente responsable:** `@devops` coordina su uso dentro de pipelines de deploy.
 
 ---
 
@@ -230,12 +257,14 @@ dotfiles/
 │   │   ├── docker-engineer.md
 │   │   ├── devops.md
 │   │   ├── reviewer.md
-│   │   └── security.md
+│   │   ├── security.md
+│   │   └── qa-engineer.md
 │   └── commands/              ← comandos slash personalizados
 │       ├── new-project.md
 │       ├── phase-up.md
 │       ├── review.md
-│       └── audit.md
+│       ├── audit.md
+│       └── qa-run.md
 ├── projects/                  ← submódulos de proyectos
 │   ├── nextcom/
 │   ├── sysbase-ia/
