@@ -215,6 +215,11 @@ jobs:
         with:
           persist-credentials: false
 
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+        with:
+          platforms: linux/amd64,linux/arm64
+
       - uses: docker/setup-buildx-action@v3
 
       - name: Log in to GHCR
@@ -225,16 +230,19 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Build image (load locally)
+      # Always build amd64 locally for Trivy scan — load: true is
+      # incompatible with multi-platform builds.
+      - name: Build image (load locally — amd64)
         uses: docker/build-push-action@v6
         with:
           context: .
           file: ${{ matrix.dockerfile }}
+          platforms: linux/amd64
           push: false
           load: true
           tags: ${{ matrix.image_name }}:ci
-          cache-from: type=gha,scope=${{ matrix.app }}
-          cache-to: type=gha,mode=max,scope=${{ matrix.app }}
+          cache-from: type=gha,scope=${{ matrix.app }}-amd64
+          cache-to: type=gha,mode=max,scope=${{ matrix.app }}-amd64
 
       - name: Trivy vulnerability scan
         uses: aquasecurity/trivy-action@0.28.0
@@ -275,15 +283,20 @@ jobs:
           path: image-sizes/${{ matrix.app }}.json
           retention-days: 7
 
-      - name: Push to GHCR (main only)
+      # On merge to main: multi-arch build + push to GHCR.
+      # Uses a per-platform cache scope to avoid cross-platform cache corruption.
+      - name: Push to GHCR (main — amd64 + arm64)
         if: github.ref == 'refs/heads/main' && github.event_name == 'push'
         uses: docker/build-push-action@v6
         with:
           context: .
           file: ${{ matrix.dockerfile }}
+          platforms: linux/amd64,linux/arm64
           push: true
           tags: |
             ${{ env.IMAGE_PREFIX }}/${{ matrix.image_name }}:${{ github.sha }}
             ${{ env.IMAGE_PREFIX }}/${{ matrix.image_name }}:latest
-          cache-from: type=gha,scope=${{ matrix.app }}
-          cache-to: type=gha,mode=max,scope=${{ matrix.app }}
+          cache-from: |
+            type=gha,scope=${{ matrix.app }}-amd64
+            type=gha,scope=${{ matrix.app }}-arm64
+          cache-to: type=gha,mode=max,scope=${{ matrix.app }}-arm64
