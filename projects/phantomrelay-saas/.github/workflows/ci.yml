@@ -1,0 +1,228 @@
+# PhantomRelay SaaS — CI/CD Pipeline
+# Triggered on push to main and pull requests
+
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  NODE_VERSION: "20"
+  PNPM_VERSION: "9.15.0"
+  REGISTRY: ghcr.io
+  IMAGE_PREFIX: ghcr.io/${{ github.repository }}
+
+jobs:
+  # -------------------------------------------------------
+  # Lint + Typecheck (API tsc + Web astro check in parallel)
+  # -------------------------------------------------------
+  lint-and-typecheck:
+    name: Lint & Typecheck
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Typecheck API & Web (parallel)
+        run: |
+          pnpm --filter @phantomrelay-saas/api exec tsc --noEmit &
+          PID_API=$!
+          pnpm --filter @phantomrelay-saas/web exec astro check &
+          PID_WEB=$!
+          wait $PID_API || exit 1
+          wait $PID_WEB || exit 1
+
+  # -------------------------------------------------------
+  # Tests (needs lint to pass first)
+  # -------------------------------------------------------
+  test:
+    name: Test
+    needs: lint-and-typecheck
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: phantom
+          POSTGRES_PASSWORD: phantom_dev
+          POSTGRES_DB: phantomrelay
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U phantom -d phantomrelay"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 5
+
+    env:
+      DATABASE_URL: postgresql://phantom:phantom_dev@localhost:5432/phantomrelay
+      JWT_SECRET: ci-test-secret
+      JWT_REFRESH_SECRET: ci-test-refresh-secret
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Generate Prisma client
+        run: pnpm --filter @phantomrelay-saas/api prisma:generate
+
+      - name: Run tests
+        run: pnpm --filter @phantomrelay-saas/api test -- --coverage
+
+      - name: Upload coverage
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: apps/api/coverage/
+          retention-days: 7
+          if-no-files-found: ignore
+
+  # -------------------------------------------------------
+  # Dependency audit
+  # -------------------------------------------------------
+  audit:
+    name: Dependency Audit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Audit dependencies
+        run: pnpm audit --audit-level=high
+
+  # -------------------------------------------------------
+  # Docker build (matrix: api + web)
+  # -------------------------------------------------------
+  docker-build:
+    name: Docker Build (${{ matrix.app }})
+    needs: test
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        app: [api, web]
+        include:
+          - app: api
+            dockerfile: docker/Dockerfile.api
+            image_name: phantomrelay-api
+          - app: web
+            dockerfile: docker/Dockerfile.web
+            image_name: phantomrelay-web
+    outputs:
+      api-size: ${{ steps.size-api.outputs.size }}
+      web-size: ${{ steps.size-web.outputs.size }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Build image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ${{ matrix.dockerfile }}
+          push: false
+          load: true
+          tags: ${{ matrix.image_name }}:ci
+          cache-from: type=gha,scope=${{ matrix.app }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.app }}
+
+      - name: Report image size
+        id: size-${{ matrix.app }}
+        run: |
+          SIZE=$(docker image inspect ${{ matrix.image_name }}:ci --format '{{.Size}}' | numfmt --to=iec-i --suffix=B)
+          echo "size=$SIZE" >> "$GITHUB_OUTPUT"
+          echo "### ${{ matrix.image_name }} image size: $SIZE" >> "$GITHUB_STEP_SUMMARY"
+
+  # -------------------------------------------------------
+  # Docker push (only on push to main)
+  # -------------------------------------------------------
+  docker-push:
+    name: Docker Push (${{ matrix.app }})
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: docker-build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    strategy:
+      matrix:
+        app: [api, web]
+        include:
+          - app: api
+            dockerfile: docker/Dockerfile.api
+            image_name: phantomrelay-api
+          - app: web
+            dockerfile: docker/Dockerfile.web
+            image_name: phantomrelay-web
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Generate tags
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.IMAGE_PREFIX }}/${{ matrix.image_name }}
+          tags: |
+            type=sha,prefix=sha-,format=short
+            type=raw,value=latest
+
+      - name: Build and push
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ${{ matrix.dockerfile }}
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha,scope=${{ matrix.app }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.app }}
