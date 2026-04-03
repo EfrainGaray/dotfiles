@@ -50,7 +50,7 @@ services:
           cpus: "0.5"
 
   api:
-    image: ghcr.io/${GHCR_OWNER}/phantomrelay-api:${API_IMAGE_TAG:-latest}
+    image: ghcr.io/${GHCR_OWNER}/phantomrelay-api:${API_IMAGE_TAG:?API_IMAGE_TAG must be set}
     container_name: phantomrelay-api-prod
     ports:
       - "3001:3001"
@@ -80,7 +80,7 @@ services:
           cpus: "1.0"
 
   web:
-    image: ghcr.io/${GHCR_OWNER}/phantomrelay-web:${WEB_IMAGE_TAG:-latest}
+    image: ghcr.io/${GHCR_OWNER}/phantomrelay-web:${WEB_IMAGE_TAG:?WEB_IMAGE_TAG must be set}
     container_name: phantomrelay-web-prod
     ports:
       - "4321:4321"

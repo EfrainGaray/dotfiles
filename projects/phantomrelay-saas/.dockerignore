@@ -1,0 +1,14 @@
+node_modules
+dist
+.next
+.env
+.env.*
+!.env.example
+*.log
+.git
+.github
+coverage
+**/*.test.ts
+**/*.spec.ts
+design
+WIP.md

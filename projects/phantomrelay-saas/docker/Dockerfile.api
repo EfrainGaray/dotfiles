@@ -1,3 +1,4 @@
+# Supports: linux/amd64, linux/arm64
 # PhantomRelay SaaS — API (NestJS)
 # Multi-stage build: builder -> runner
 
@@ -22,20 +23,23 @@ COPY tsconfig.base.json ./
 
 RUN pnpm --filter api build
 
+# Prune to production-only deps
+RUN pnpm --filter api --prod deploy /app/prod-deploy
+
 # --- Runner ---
 FROM node:20-alpine AS runner
 
-RUN corepack enable && corepack prepare pnpm@9.15.0 --activate
+RUN addgroup -S app && adduser -S app -G app
 
 WORKDIR /app
 
-# Copy built output and dependencies
-COPY --from=builder /app/package.json /app/pnpm-lock.yaml /app/pnpm-workspace.yaml ./
-COPY --from=builder /app/apps/api/package.json apps/api/
-COPY --from=builder /app/apps/api/dist apps/api/dist/
-COPY --from=builder /app/packages/shared/ packages/shared/
-COPY --from=builder /app/node_modules node_modules/
-COPY --from=builder /app/apps/api/node_modules apps/api/node_modules/
+# Copy built output and production dependencies with correct ownership
+COPY --from=builder --chown=app:app /app/prod-deploy/node_modules apps/api/node_modules/
+COPY --from=builder --chown=app:app /app/apps/api/dist apps/api/dist/
+COPY --from=builder --chown=app:app /app/apps/api/package.json apps/api/
+COPY --from=builder --chown=app:app /app/packages/shared/ packages/shared/
+
+USER app
 
 EXPOSE 3001
 
