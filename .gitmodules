@@ -4,3 +4,9 @@
 [submodule "projects/agatha"]
 	path = projects/agatha
 	url = https://github.com/EfrainGaray/agatha.git
+[submodule "projects/phantomrelay-saas"]
+	path = projects/phantomrelay-saas
+	url = https://github.com/EfrainGaray/phantomrelay-saas.git
+[submodule "projects/sysbase"]
+	path = projects/sysbase
+	url = https://github.com/EfrainGaray/sysbase.git
