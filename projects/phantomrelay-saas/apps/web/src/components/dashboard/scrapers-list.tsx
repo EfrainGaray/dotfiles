@@ -1,16 +1,19 @@
 import { Badge } from "../ui/badge";
 import { Button } from "../ui/button";
-import { Plus, Play, Pause, Trash2, MoreHorizontal, Search } from "lucide-react";
+import { Plus, Play, Pause, Trash2, Search } from "lucide-react";
 import { Input } from "../ui/input";
+import { useState, useEffect } from "react";
+import * as api from "@/lib/api-client";
+import type { Scraper } from "@/lib/api-client";
 
-const scrapers = [
-  { id: "1", name: "Amazon_Price_Monitor", url: "amazon.com/dp/*", mode: "stealth", status: "active", schedule: "Every 6h", lastRun: "2 min ago", successRate: "98.2%" },
-  { id: "2", name: "LinkedIn_Profile_Scraper", url: "linkedin.com/in/*", mode: "human", status: "active", schedule: "Daily 9am", lastRun: "15 min ago", successRate: "91.5%" },
-  { id: "3", name: "Google_SERP_Tracker", url: "google.com/search?q=*", mode: "http", status: "paused", schedule: "Every 1h", lastRun: "32 min ago", successRate: "87.3%" },
-  { id: "4", name: "Zillow_Listings", url: "zillow.com/homes/*", mode: "auto", status: "active", schedule: "Every 12h", lastRun: "1 hr ago", successRate: "95.1%" },
-  { id: "5", name: "HackerNews_Feed", url: "news.ycombinator.com", mode: "http", status: "active", schedule: "Every 30m", lastRun: "2 hr ago", successRate: "99.8%" },
-  { id: "6", name: "Twitter_Mentions", url: "x.com/search?q=*", mode: "stealth", status: "error", schedule: "Every 2h", lastRun: "5 hr ago", successRate: "72.4%" },
-  { id: "7", name: "Shopify_Product_Watch", url: "myshopify.com/products/*", mode: "headless", status: "active", schedule: "Daily 6am", lastRun: "8 hr ago", successRate: "96.7%" },
+const mockScrapers = [
+  { id: "1", name: "Amazon_Price_Monitor", targetUrl: "amazon.com/dp/*", mode: "stealth", status: "active", config: {}, createdAt: "", updatedAt: "" },
+  { id: "2", name: "LinkedIn_Profile_Scraper", targetUrl: "linkedin.com/in/*", mode: "human", status: "active", config: {}, createdAt: "", updatedAt: "" },
+  { id: "3", name: "Google_SERP_Tracker", targetUrl: "google.com/search?q=*", mode: "http", status: "paused", config: {}, createdAt: "", updatedAt: "" },
+  { id: "4", name: "Zillow_Listings", targetUrl: "zillow.com/homes/*", mode: "auto", status: "active", config: {}, createdAt: "", updatedAt: "" },
+  { id: "5", name: "HackerNews_Feed", targetUrl: "news.ycombinator.com", mode: "http", status: "active", config: {}, createdAt: "", updatedAt: "" },
+  { id: "6", name: "Twitter_Mentions", targetUrl: "x.com/search?q=*", mode: "stealth", status: "error", config: {}, createdAt: "", updatedAt: "" },
+  { id: "7", name: "Shopify_Product_Watch", targetUrl: "myshopify.com/products/*", mode: "headless", status: "active", config: {}, createdAt: "", updatedAt: "" },
 ];
 
 const modeColors: Record<string, string> = {
@@ -18,10 +21,81 @@ const modeColors: Record<string, string> = {
 };
 
 const statusColors: Record<string, string> = {
-  active: "bg-success", paused: "bg-warning", error: "bg-destructive",
+  active: "bg-success", ACTIVE: "bg-success",
+  paused: "bg-warning", PAUSED: "bg-warning",
+  error: "bg-destructive", ERROR: "bg-destructive",
+  RUNNING: "bg-info",
 };
 
 export function ScrapersList() {
+  const [scrapers, setScrapers] = useState<Scraper[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [search, setSearch] = useState("");
+  const [modeFilter, setModeFilter] = useState("");
+  const [statusFilter, setStatusFilter] = useState("");
+
+  useEffect(() => {
+    loadScrapers();
+  }, []);
+
+  async function loadScrapers() {
+    try {
+      setLoading(true);
+      const result = await api.getScrapers();
+      setScrapers(result);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to load scrapers");
+      setScrapers(mockScrapers as Scraper[]);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function handleDelete(id: string, name: string) {
+    if (!confirm(`Delete scraper "${name}"? This cannot be undone.`)) return;
+    try {
+      await api.deleteScraper(id);
+      setScrapers((prev) => prev.filter((s) => s.id !== id));
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Failed to delete scraper");
+    }
+  }
+
+  async function handleToggleStatus(id: string, currentStatus: string) {
+    const newStatus = currentStatus.toLowerCase() === "active" ? "PAUSED" : "ACTIVE";
+    try {
+      const updated = await api.updateScraper(id, { status: newStatus });
+      setScrapers((prev) => prev.map((s) => (s.id === id ? updated : s)));
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Failed to update scraper");
+    }
+  }
+
+  // Client-side filtering
+  const filtered = scrapers.filter((s) => {
+    if (search && !s.name.toLowerCase().includes(search.toLowerCase())) return false;
+    if (modeFilter && s.mode.toLowerCase() !== modeFilter) return false;
+    if (statusFilter && s.status.toLowerCase() !== statusFilter) return false;
+    return true;
+  });
+
+  if (loading) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-semibold tracking-tight">Scrapers</h1>
+            <p className="mt-1 text-sm text-muted-foreground">Manage your scraping configurations</p>
+          </div>
+        </div>
+        <div className="rounded-lg border border-border bg-card p-8 text-center text-sm text-muted-foreground animate-pulse">
+          Loading scrapers...
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -37,12 +111,27 @@ export function ScrapersList() {
         </a>
       </div>
 
+      {error && (
+        <div className="rounded-lg border border-warning bg-warning/10 p-3 text-sm text-warning">
+          {error} — showing cached data
+        </div>
+      )}
+
       <div className="flex items-center gap-3">
         <div className="relative flex-1 max-w-sm">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input placeholder="Search scrapers..." className="pl-9" />
+          <Input
+            placeholder="Search scrapers..."
+            className="pl-9"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
         </div>
-        <select className="h-8 rounded-md border border-input bg-transparent px-3 text-sm text-foreground">
+        <select
+          className="h-8 rounded-md border border-input bg-transparent px-3 text-sm text-foreground"
+          value={modeFilter}
+          onChange={(e) => setModeFilter(e.target.value)}
+        >
           <option value="">All modes</option>
           <option value="http">HTTP</option>
           <option value="headless">Headless</option>
@@ -50,7 +139,11 @@ export function ScrapersList() {
           <option value="human">Human</option>
           <option value="auto">Auto</option>
         </select>
-        <select className="h-8 rounded-md border border-input bg-transparent px-3 text-sm text-foreground">
+        <select
+          className="h-8 rounded-md border border-input bg-transparent px-3 text-sm text-foreground"
+          value={statusFilter}
+          onChange={(e) => setStatusFilter(e.target.value)}
+        >
           <option value="">All statuses</option>
           <option value="active">Active</option>
           <option value="paused">Paused</option>
@@ -66,32 +159,38 @@ export function ScrapersList() {
               <th className="px-5 py-3 font-medium">Name</th>
               <th className="px-5 py-3 font-medium">Target</th>
               <th className="px-5 py-3 font-medium">Mode</th>
-              <th className="px-5 py-3 font-medium">Schedule</th>
-              <th className="px-5 py-3 font-medium">Last Run</th>
-              <th className="px-5 py-3 font-medium">Success</th>
+              <th className="px-5 py-3 font-medium">Updated</th>
               <th className="px-5 py-3 font-medium w-10"></th>
             </tr>
           </thead>
           <tbody>
-            {scrapers.map((s) => (
+            {filtered.map((s) => (
               <tr key={s.id} className="border-b border-border last:border-0 hover:bg-muted/50 transition-colors">
                 <td className="px-5 py-3">
-                  <span className={`inline-block h-2 w-2 rounded-full ${statusColors[s.status]}`} />
+                  <span className={`inline-block h-2 w-2 rounded-full ${statusColors[s.status] ?? "bg-muted-foreground"}`} />
                 </td>
                 <td className="px-5 py-3 font-medium text-foreground">{s.name}</td>
-                <td className="px-5 py-3 text-muted-foreground text-xs font-mono">{s.url}</td>
+                <td className="px-5 py-3 text-muted-foreground text-xs font-mono">{s.targetUrl}</td>
                 <td className="px-5 py-3">
-                  <Badge variant={modeColors[s.mode] as any}>{s.mode}</Badge>
+                  <Badge variant={modeColors[s.mode?.toLowerCase()] as any}>{s.mode}</Badge>
                 </td>
-                <td className="px-5 py-3 text-muted-foreground">{s.schedule}</td>
-                <td className="px-5 py-3 text-muted-foreground">{s.lastRun}</td>
-                <td className="px-5 py-3 text-muted-foreground">{s.successRate}</td>
+                <td className="px-5 py-3 text-muted-foreground text-xs">
+                  {s.updatedAt ? new Date(s.updatedAt).toLocaleDateString() : "—"}
+                </td>
                 <td className="px-5 py-3">
                   <div className="flex items-center gap-1">
-                    <button className="p-1 text-muted-foreground hover:text-foreground">
-                      {s.status === "active" ? <Pause className="h-3.5 w-3.5" /> : <Play className="h-3.5 w-3.5" />}
+                    <button
+                      className="p-1 text-muted-foreground hover:text-foreground"
+                      onClick={() => handleToggleStatus(s.id, s.status)}
+                      title={s.status.toLowerCase() === "active" ? "Pause" : "Resume"}
+                    >
+                      {s.status.toLowerCase() === "active" ? <Pause className="h-3.5 w-3.5" /> : <Play className="h-3.5 w-3.5" />}
                     </button>
-                    <button className="p-1 text-muted-foreground hover:text-destructive">
+                    <button
+                      className="p-1 text-muted-foreground hover:text-destructive"
+                      onClick={() => handleDelete(s.id, s.name)}
+                      title="Delete"
+                    >
                       <Trash2 className="h-3.5 w-3.5" />
                     </button>
                   </div>
@@ -102,7 +201,7 @@ export function ScrapersList() {
         </table>
       </div>
 
-      <p className="text-xs text-muted-foreground">{scrapers.length} scrapers — 3 / 25 limit (Pro plan)</p>
+      <p className="text-xs text-muted-foreground">{filtered.length} scrapers</p>
     </div>
   );
 }

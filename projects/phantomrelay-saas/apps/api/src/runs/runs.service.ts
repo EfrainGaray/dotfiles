@@ -1,6 +1,7 @@
 import { Injectable, NotFoundException, ForbiddenException, Logger } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { RelayService, RelayError } from '../relay/relay.service';
+import { NotificationsService } from '../notifications/notifications.service';
 
 @Injectable()
 export class RunsService {
@@ -9,6 +10,7 @@ export class RunsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly relayService: RelayService,
+    private readonly notifications: NotificationsService,
   ) {}
 
   /**
@@ -49,7 +51,7 @@ export class RunsService {
    */
   private async executeInBackground(
     runId: string,
-    scraper: { id: string; url: string; mode: string; config: unknown },
+    scraper: { id: string; userId: string; name: string; url: string; mode: string; config: unknown },
   ) {
     // Mark as RUNNING
     await this.prisma.run.update({
@@ -93,6 +95,50 @@ export class RunsService {
       // Increment usage
       await this.incrementUsage(runId);
 
+      // Notify user and deliver webhooks
+      if (isSuccess) {
+        this.notifications
+          .create(
+            scraper.userId,
+            'INFO',
+            `Run completed: ${scraper.name}`,
+            `Run finished successfully in ${result.latencyMs ?? 0}ms`,
+            `/runs/${runId}`,
+          )
+          .catch((err) => this.logger.error(`Notification create failed: ${err.message}`));
+
+        this.notifications
+          .deliverWebhook(scraper.id, 'run.completed', {
+            event: 'run.completed',
+            runId,
+            scraperId: scraper.id,
+            status: runStatus,
+            latencyMs: result.latencyMs,
+          })
+          .catch((err) => this.logger.error(`Webhook delivery failed: ${err.message}`));
+      } else {
+        this.notifications
+          .create(
+            scraper.userId,
+            'ERROR',
+            `Run failed: ${scraper.name}`,
+            result.error?.message ?? `Run ended with status ${runStatus}`,
+            `/runs/${runId}`,
+          )
+          .catch((err) => this.logger.error(`Notification create failed: ${err.message}`));
+
+        this.notifications
+          .deliverWebhook(scraper.id, 'run.failed', {
+            event: 'run.failed',
+            runId,
+            scraperId: scraper.id,
+            status: runStatus,
+            errorCode: result.error?.code,
+            errorMessage: result.error?.message,
+          })
+          .catch((err) => this.logger.error(`Webhook delivery failed: ${err.message}`));
+      }
+
       this.logger.log(`Run ${runId} completed: ${runStatus}`);
     } catch (err) {
       const error = err instanceof RelayError ? err : new RelayError('UNKNOWN', (err as Error).message);
@@ -115,6 +161,28 @@ export class RunsService {
 
       // Still count failed runs toward usage
       await this.incrementUsage(runId);
+
+      // Notify user and deliver webhooks on exception
+      this.notifications
+        .create(
+          scraper.userId,
+          'ERROR',
+          `Run failed: ${scraper.name}`,
+          error.message,
+          `/runs/${runId}`,
+        )
+        .catch((e) => this.logger.error(`Notification create failed: ${e.message}`));
+
+      this.notifications
+        .deliverWebhook(scraper.id, 'run.failed', {
+          event: 'run.failed',
+          runId,
+          scraperId: scraper.id,
+          status: 'FAILED',
+          errorCode: error.code,
+          errorMessage: error.message,
+        })
+        .catch((e) => this.logger.error(`Webhook delivery failed: ${e.message}`));
 
       this.logger.error(`Run ${runId} failed: [${error.code}] ${error.message}`);
     }

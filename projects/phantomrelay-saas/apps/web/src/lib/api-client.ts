@@ -125,6 +125,7 @@ export interface UpdateScraperData {
   name?: string;
   targetUrl?: string;
   mode?: string;
+  status?: string;
   config?: Record<string, unknown>;
 }
 
@@ -311,5 +312,69 @@ export async function createApiKey(name: string): Promise<ApiKey> {
 export async function revokeApiKey(id: string): Promise<void> {
   return apiFetch<void>(`/api-keys/${id}`, {
     method: "DELETE",
+  });
+}
+
+// --- Billing types ---
+
+export interface BillingUsage {
+  requests: number;
+  requestsLimit: number;
+  scrapers: number;
+  scrapersLimit: number;
+  concurrent: number;
+  concurrentLimit: number;
+  currentPlan: string;
+  renewsAt: string;
+}
+
+export interface BillingPlan {
+  name: string;
+  price: string;
+  period: string;
+  requests: string;
+  scrapers: string;
+  concurrent: string;
+}
+
+export interface Invoice {
+  id: string;
+  date: string;
+  amount: string;
+  status: string;
+}
+
+export interface CheckoutResponse {
+  url: string;
+}
+
+export interface PortalResponse {
+  url: string;
+}
+
+// --- Billing methods ---
+
+export async function getUsage(): Promise<BillingUsage> {
+  return apiFetch<BillingUsage>("/billing/usage");
+}
+
+export async function getPlans(): Promise<BillingPlan[]> {
+  return apiFetch<BillingPlan[]>("/billing/plans");
+}
+
+export async function getInvoices(): Promise<Invoice[]> {
+  return apiFetch<Invoice[]>("/billing/invoices");
+}
+
+export async function createCheckout(planName: string): Promise<CheckoutResponse> {
+  return apiFetch<CheckoutResponse>("/billing/checkout", {
+    method: "POST",
+    body: JSON.stringify({ planName }),
+  });
+}
+
+export async function createPortal(): Promise<PortalResponse> {
+  return apiFetch<PortalResponse>("/billing/portal", {
+    method: "POST",
   });
 }

@@ -2,9 +2,10 @@ import { Module } from '@nestjs/common';
 import { RunsService } from './runs.service';
 import { RunsController } from './runs.controller';
 import { RelayModule } from '../relay/relay.module';
+import { NotificationsModule } from '../notifications/notifications.module';
 
 @Module({
-  imports: [RelayModule],
+  imports: [RelayModule, NotificationsModule],
   providers: [RunsService],
   controllers: [RunsController],
   exports: [RunsService],
