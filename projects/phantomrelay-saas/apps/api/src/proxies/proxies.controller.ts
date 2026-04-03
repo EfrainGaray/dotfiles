@@ -30,6 +30,11 @@ export class ProxiesController {
     return this.proxiesService.findAll(req.user.userId);
   }
 
+  @Get('details')
+  findAllWithDetails(@Request() req: { user: { userId: string } }) {
+    return this.proxiesService.findAllWithDetails(req.user.userId);
+  }
+
   @Get(':id')
   findOne(
     @Param('id') id: string,

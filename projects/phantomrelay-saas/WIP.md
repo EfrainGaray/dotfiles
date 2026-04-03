@@ -1,63 +1,65 @@
 # WIP — PhantomRelay SaaS
 
-## Fase actual: Diseño UI (Stitch) → luego Sprint 1 implementación
+## Fase actual: `xp` — Implementación en curso
 
-## Stitch Config
-- **Proyecto v2 (limpio):** `16243053443926593898`
-- **Design System:** "PhantomRelay Notion" (`assets/16291211105068034930`)
-- **MCP:** HTTP directo `stitch.googleapis.com/mcp` (nativo en Claude Code)
-- **URL:** https://stitch.withgoogle.com/project/16243053443926593898
+## Estado real del proyecto
 
-## Generación de pantallas (4 variantes cada una)
+### Completado
 
-Cada pantalla se genera en: **dark desktop, light desktop, dark mobile, light mobile**
+**Backend (NestJS + Prisma)**
+- [x] Monorepo pnpm + Turborepo
+- [x] NestJS API con global prefix `/api`
+- [x] Prisma schema completo (User, ApiKey, Scraper, Schedule, Run, ProxyPool, Proxy, ScraperWebhook, Notification, Plan, UsageRecord)
+- [x] Docker Compose (postgres + redis + api + web)
+- [x] Auth module: email/password + JWT + Google OAuth + GitHub OAuth
+- [x] Scrapers CRUD
+- [x] Runs: ejecución, historial, stats
+- [x] Schedules: BullMQ recurring jobs
+- [x] Billing: Stripe checkout + portal + webhooks
+- [x] Notifications: CRUD + mark-read + unread count
+- [x] Monitoring: fleet stats + health
+- [x] Proxies: CRUD de pools + proxies
+- [x] ApiKeys: crear + revocar
+- [x] SSE events (relay execution)
+- [x] Global interceptors: LoggingInterceptor, TransformInterceptor, HttpExceptionFilter
+- [x] CI/CD GitHub Actions
 
-| # | Pantalla | Dark Desktop | Light Desktop | Dark Mobile | Light Mobile |
-|---|---|---|---|---|---|
-| 1 | Login | [ ] | [ ] | [ ] | [ ] |
-| 2 | Signup | [ ] | [ ] | [ ] | [ ] |
-| 3 | Onboarding | [ ] | [ ] | [ ] | [ ] |
-| 4 | Dashboard | [ ] | [ ] | [ ] | [ ] |
-| 5 | Scrapers List | [ ] | [ ] | [ ] | [ ] |
-| 6 | Wizard: Target | [ ] | [ ] | [ ] | [ ] |
-| 7 | Wizard: Mode | [ ] | [ ] | [ ] | [ ] |
-| 8 | Wizard: Actions | [ ] | [ ] | [ ] | [ ] |
-| 9 | Wizard: Extraction | [ ] | [ ] | [ ] | [ ] |
-| 10 | Wizard: Anti-Detection | [ ] | [ ] | [ ] | [ ] |
-| 11 | Wizard: Schedule | [ ] | [ ] | [ ] | [ ] |
-| 12 | Wizard: Notifications | [ ] | [ ] | [ ] | [ ] |
-| 13 | Wizard: Review | [ ] | [ ] | [ ] | [ ] |
-| 14 | Run History | [ ] | [ ] | [ ] | [ ] |
-| 15 | Run Detail | [ ] | [ ] | [ ] | [ ] |
-| 16 | Monitoring | [ ] | [ ] | [ ] | [ ] |
-| 17 | Proxies | [ ] | [ ] | [ ] | [ ] |
-| 18 | Alerts | [ ] | [ ] | [ ] | [ ] |
-| 19 | Billing | [ ] | [ ] | [ ] | [ ] |
-| 20 | Settings | [ ] | [ ] | [ ] | [ ] |
-| 21 | API Docs | [ ] | [ ] | [ ] | [ ] |
-| 22 | Landing | [ ] | [ ] | [ ] | [ ] |
+**Frontend (Astro 5 SSR + React 19)**
+- [x] Astro SSR con node adapter (standalone), i18n en/es
+- [x] Design system "PhantomRelay Notion" definido en DESIGN.md
+- [x] shadcn/ui + Tailwind CSS 4
+- [x] Landing page (index.astro)
+- [x] Auth pages: login, signup, onboarding
+- [x] Dashboard: overview, scrapers, runs, monitoring, proxies, alerts, billing, settings, api-docs
+- [x] Typed API client (`api-client.ts`) con token management y envelope unwrap
 
-**Total: 22 pantallas × 4 variantes = 88 screens**
+**Shared**
+- [x] Package `@phantomrelay-saas/shared` con tipos comunes
 
-## Después de diseño → Sprint 1: Foundation
+### Pendiente
 
-- [ ] 1. Scaffold monorepo (pnpm workspace + turbo + tsconfig)
-- [x] 2. Astro 5 + React 19 + Tailwind + shadcn/ui setup (parcial, actualizar tokens)
-- [ ] 3. NestJS with Prisma + PostgreSQL schema
-- [x] 4. Shared types package (done)
-- [ ] 5. Docker compose (postgres + redis + api + web)
-- [ ] 6. Auth module (email/password + JWT)
-- [ ] 7. Landing page (static Astro)
-- [ ] 8. Login/signup pages
-- [ ] 9. Dashboard layout + overview page
-- [ ] 10. CLAUDE.md + README.md + .gitignore
+**Backend**
+- [ ] `GET /proxies/details` — endpoint de detalle agregado de pools (health stats, domain bans)
+- [ ] Tests: auth controller (login 200/401, register 201/409, JWT guard 200/401)
+- [ ] Tests: ampliar cobertura billing y relay
+- [ ] Rate limiting por plan
 
-## Sprint 2: Core Scraper (pending)
-## Sprint 3: Scheduling + History (pending)
-## Sprint 4: Monetization + Polish (pending)
+**Frontend**
+- [ ] Conectar dashboard pages al API real (actualmente con datos mock en algunos)
+- [ ] Wizard de creación de scraper completo (steps: target → mode → actions → extraction → anti-detection → schedule → notifications → review)
+- [ ] Run detail page
 
-## Notas
-- Design system "PhantomRelay Notion" tiene designMd completo (~4000 palabras)
-- Cubre: colores dark/light, tipografía Inter, spacing 8px, layout, todos los componentes
-- Las screens del proyecto v1 (18069814474819705735) quedan como referencia, no se usan
-- Tokens CSS en globals.css deben actualizarse para matchear el design system nuevo
+**Infra**
+- [ ] Variables de entorno de producción documentadas
+- [ ] Deploy script / Kubernetes manifests
+
+## Design System
+
+El design system está definido en `DESIGN.md`. Es "PhantomRelay Notion": Notion-inspired, minimal, content-first.
+Tokens CSS mapeados a shadcn/ui en `globals.css`.
+
+## Próximos pasos inmediatos
+
+1. Implementar `GET /proxies/details` en el backend (proxy pool details con health aggregation)
+2. Ampliar tests de auth (controller e2e: login válido/inválido, registro/duplicado, JWT guard)
+3. Conectar páginas de dashboard al API real (proxies, monitoring)

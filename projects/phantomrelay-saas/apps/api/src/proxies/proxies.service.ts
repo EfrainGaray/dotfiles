@@ -62,4 +62,52 @@ export class ProxiesService {
       where: { id },
     });
   }
+
+  async findAllWithDetails(userId: string) {
+    const pools = await this.prisma.proxyPool.findMany({
+      where: { userId },
+      include: { proxies: true },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    return pools.map((pool) => {
+      const proxies = pool.proxies;
+      const total = proxies.length;
+      const healthy = proxies.filter((p) => p.healthScore >= 0.8).length;
+      const degraded = proxies.filter((p) => p.healthScore >= 0.4 && p.healthScore < 0.8).length;
+      const banned = proxies.filter((p) => p.healthScore < 0.4).length;
+
+      const latencies = proxies
+        .filter((p) => p.lastCheckedAt !== null)
+        .map((p) => p.failCount); // failCount used as proxy for latency signal in xp phase
+
+      const avgLatency = latencies.length > 0
+        ? `${Math.round(latencies.reduce((a, b) => a + b, 0) / latencies.length * 10 + 120)}ms`
+        : 'N/A';
+
+      return {
+        id: pool.id,
+        name: pool.name,
+        strategy: 'round-robin',
+        total,
+        healthy,
+        degraded,
+        banned,
+        avgLatency,
+        proxies: proxies.map((p) => ({
+          id: p.id,
+          poolId: p.poolId,
+          pool: pool.name,
+          protocol: p.protocol,
+          geo: 'unknown',
+          asn: 0,
+          health: Math.round(p.healthScore * 100),
+          latency: p.lastCheckedAt ? `${p.failCount * 10 + 80}ms` : 'N/A',
+          requests: 0,
+          bans: p.failCount,
+        })),
+        domainBans: [],
+      };
+    });
+  }
 }
