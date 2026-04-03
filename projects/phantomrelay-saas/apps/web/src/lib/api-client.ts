@@ -378,3 +378,167 @@ export async function createPortal(): Promise<PortalResponse> {
     method: "POST",
   });
 }
+
+// --- Monitoring types ---
+
+export interface MonitoringStats {
+  fleet: {
+    ready: number;
+    busy: number;
+    dead: number;
+    capacity: number;
+    utilization: string;
+  };
+  instances: Array<{
+    id: string;
+    status: string;
+    mode: string;
+    profile: string;
+    uptime: string;
+    requests: number;
+    port: number;
+  }>;
+  latency: Array<{
+    label: string;
+    http: string;
+    headless: string;
+    stealth: string;
+    human: string;
+  }>;
+  detectionSignals: Array<{
+    source: string;
+    type: string;
+    count: number;
+    blocked: number;
+  }>;
+}
+
+export interface MonitoringHealth {
+  status: string;
+  uptime: number;
+  services: Record<string, string>;
+}
+
+// --- Monitoring methods ---
+
+export async function getMonitoringStats(): Promise<MonitoringStats> {
+  return apiFetch<MonitoringStats>("/monitoring/stats");
+}
+
+export async function getMonitoringHealth(): Promise<MonitoringHealth> {
+  return apiFetch<MonitoringHealth>("/monitoring/health");
+}
+
+// --- Proxy extended methods ---
+
+export async function deleteProxyPool(id: string): Promise<void> {
+  return apiFetch<void>(`/proxy-pools/${id}`, {
+    method: "DELETE",
+  });
+}
+
+export interface Proxy {
+  id: string;
+  poolId: string;
+  pool: string;
+  protocol: string;
+  geo: string;
+  asn: number;
+  health: number;
+  latency: string;
+  requests: number;
+  bans: number;
+}
+
+export interface AddProxyData {
+  host: string;
+  port: number;
+  username?: string;
+  password?: string;
+  country?: string;
+}
+
+export async function addProxy(poolId: string, data: AddProxyData): Promise<Proxy> {
+  return apiFetch<Proxy>(`/proxy-pools/${poolId}/proxies`, {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+}
+
+export async function deleteProxy(id: string): Promise<void> {
+  return apiFetch<void>(`/proxies/${id}`, {
+    method: "DELETE",
+  });
+}
+
+export async function testProxy(id: string): Promise<{ healthy: boolean; latencyMs: number }> {
+  return apiFetch<{ healthy: boolean; latencyMs: number }>(`/proxies/${id}/test`, {
+    method: "POST",
+  });
+}
+
+export interface ProxyPoolDetail {
+  id: string;
+  name: string;
+  strategy: string;
+  total: number;
+  healthy: number;
+  degraded: number;
+  banned: number;
+  avgLatency: string;
+  proxies: Proxy[];
+  domainBans: Array<{
+    proxy: string;
+    domain: string;
+    since: string;
+    reason: string;
+  }>;
+}
+
+export async function getProxyPoolDetails(): Promise<ProxyPoolDetail[]> {
+  return apiFetch<ProxyPoolDetail[]>("/proxy-pools/details");
+}
+
+// --- Notification types ---
+
+export interface Notification {
+  id: string;
+  type: string;
+  title: string;
+  detail: string;
+  time: string;
+  read: boolean;
+}
+
+export interface UnreadCount {
+  count: number;
+}
+
+// --- Notification methods ---
+
+export async function getNotifications(unreadOnly?: boolean): Promise<Notification[]> {
+  const params = unreadOnly ? "?unreadOnly=true" : "";
+  return apiFetch<Notification[]>(`/notifications${params}`);
+}
+
+export async function markNotificationRead(id: string): Promise<void> {
+  return apiFetch<void>(`/notifications/${id}/read`, {
+    method: "PATCH",
+  });
+}
+
+export async function markAllNotificationsRead(): Promise<void> {
+  return apiFetch<void>("/notifications/mark-all-read", {
+    method: "POST",
+  });
+}
+
+export async function deleteNotification(id: string): Promise<void> {
+  return apiFetch<void>(`/notifications/${id}`, {
+    method: "DELETE",
+  });
+}
+
+export async function getUnreadCount(): Promise<UnreadCount> {
+  return apiFetch<UnreadCount>("/notifications/unread-count");
+}

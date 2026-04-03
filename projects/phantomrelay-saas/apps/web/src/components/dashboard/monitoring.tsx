@@ -1,32 +1,73 @@
 import { Badge } from "../ui/badge";
+import { useState, useEffect } from "react";
+import * as api from "@/lib/api-client";
+import type { MonitoringStats } from "@/lib/api-client";
 
-const fleet = [
-  { id: "s1", status: "ready", mode: "stealth", profile: "developer-01", uptime: "2h 14m", requests: 47, port: 9222 },
-  { id: "s2", status: "busy", mode: "human", profile: "shopper-03", uptime: "45m", requests: 12, port: 9223 },
-  { id: "s3", status: "ready", mode: "headless", profile: "—", uptime: "1h 30m", requests: 83, port: 9224 },
-  { id: "s4", status: "dead", mode: "stealth", profile: "student-02", uptime: "—", requests: 0, port: 9225 },
-  { id: "s5", status: "ready", mode: "http", profile: "—", uptime: "3h 02m", requests: 156, port: 9226 },
-];
-
-const latencyData = [
-  { label: "p50", http: "12ms", headless: "340ms", stealth: "3.1s", human: "8.4s" },
-  { label: "p95", http: "38ms", headless: "1.2s", stealth: "8.7s", human: "18.2s" },
-  { label: "p99", http: "48ms", headless: "1.9s", stealth: "14.1s", human: "27.5s" },
-];
-
-const detectionSignals = [
-  { source: "Cloudflare", type: "JS Challenge", count: 12, blocked: 2 },
-  { source: "DataDome", type: "Captcha", count: 5, blocked: 1 },
-  { source: "PerimeterX", type: "Block Page", count: 3, blocked: 3 },
-  { source: "Imperva", type: "Rate Limit", count: 8, blocked: 0 },
-  { source: "reCAPTCHA", type: "v3 Score", count: 4, blocked: 0 },
-];
+const mockData: MonitoringStats = {
+  fleet: { ready: 3, busy: 1, dead: 1, capacity: 5, utilization: "80%" },
+  instances: [
+    { id: "s1", status: "ready", mode: "stealth", profile: "developer-01", uptime: "2h 14m", requests: 47, port: 9222 },
+    { id: "s2", status: "busy", mode: "human", profile: "shopper-03", uptime: "45m", requests: 12, port: 9223 },
+    { id: "s3", status: "ready", mode: "headless", profile: "\u2014", uptime: "1h 30m", requests: 83, port: 9224 },
+    { id: "s4", status: "dead", mode: "stealth", profile: "student-02", uptime: "\u2014", requests: 0, port: 9225 },
+    { id: "s5", status: "ready", mode: "http", profile: "\u2014", uptime: "3h 02m", requests: 156, port: 9226 },
+  ],
+  latency: [
+    { label: "p50", http: "12ms", headless: "340ms", stealth: "3.1s", human: "8.4s" },
+    { label: "p95", http: "38ms", headless: "1.2s", stealth: "8.7s", human: "18.2s" },
+    { label: "p99", http: "48ms", headless: "1.9s", stealth: "14.1s", human: "27.5s" },
+  ],
+  detectionSignals: [
+    { source: "Cloudflare", type: "JS Challenge", count: 12, blocked: 2 },
+    { source: "DataDome", type: "Captcha", count: 5, blocked: 1 },
+    { source: "PerimeterX", type: "Block Page", count: 3, blocked: 3 },
+    { source: "Imperva", type: "Rate Limit", count: 8, blocked: 0 },
+    { source: "reCAPTCHA", type: "v3 Score", count: 4, blocked: 0 },
+  ],
+};
 
 const statusColors: Record<string, string> = {
   ready: "bg-success", busy: "bg-warning", starting: "bg-chart-1", draining: "bg-muted-foreground", dead: "bg-destructive",
 };
 
 export function MonitoringDashboard() {
+  const [data, setData] = useState<MonitoringStats | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    loadMonitoring();
+  }, []);
+
+  async function loadMonitoring() {
+    try {
+      setLoading(true);
+      const result = await api.getMonitoringStats();
+      setData(result);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to load monitoring data");
+      setData(mockData);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  if (loading) {
+    return (
+      <div className="space-y-6">
+        <div>
+          <h1 className="text-2xl font-semibold tracking-tight">Monitoring</h1>
+          <p className="mt-1 text-sm text-muted-foreground">Fleet health, latency, and detection signals</p>
+        </div>
+        <div className="rounded-lg border border-border bg-card p-8 text-center text-sm text-muted-foreground animate-pulse">
+          Loading monitoring data...
+        </div>
+      </div>
+    );
+  }
+
+  const { fleet, instances, latency, detectionSignals } = data ?? mockData;
+
   return (
     <div className="space-y-6">
       <div>
@@ -34,14 +75,20 @@ export function MonitoringDashboard() {
         <p className="mt-1 text-sm text-muted-foreground">Fleet health, latency, and detection signals</p>
       </div>
 
+      {error && (
+        <div className="rounded-lg border border-warning bg-warning/10 p-3 text-sm text-warning">
+          {error} — showing cached data
+        </div>
+      )}
+
       {/* Fleet Cards */}
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-5">
         {[
-          { label: "Ready", count: 3, color: "text-success" },
-          { label: "Busy", count: 1, color: "text-warning" },
-          { label: "Dead", count: 1, color: "text-destructive" },
-          { label: "Capacity", count: 5, color: "text-foreground" },
-          { label: "Utilization", count: "80%", color: "text-foreground" },
+          { label: "Ready", count: fleet.ready, color: "text-success" },
+          { label: "Busy", count: fleet.busy, color: "text-warning" },
+          { label: "Dead", count: fleet.dead, color: "text-destructive" },
+          { label: "Capacity", count: fleet.capacity, color: "text-foreground" },
+          { label: "Utilization", count: fleet.utilization, color: "text-foreground" },
         ].map((c) => (
           <div key={c.label} className="rounded-lg border border-border bg-card p-4 text-center">
             <p className={`text-2xl font-semibold ${c.color}`}>{c.count}</p>
@@ -68,7 +115,7 @@ export function MonitoringDashboard() {
             </tr>
           </thead>
           <tbody>
-            {fleet.map((s) => (
+            {instances.map((s) => (
               <tr key={s.id} className="border-b border-border last:border-0 hover:bg-muted/50 transition-colors">
                 <td className="px-5 py-2.5">
                   <div className="flex items-center gap-2">
@@ -105,7 +152,7 @@ export function MonitoringDashboard() {
               </tr>
             </thead>
             <tbody>
-              {latencyData.map((row) => (
+              {latency.map((row) => (
                 <tr key={row.label} className="border-b border-border last:border-0">
                   <td className="px-5 py-2.5 font-medium text-foreground">{row.label}</td>
                   <td className="px-5 py-2.5 font-mono text-xs text-muted-foreground">{row.http}</td>
