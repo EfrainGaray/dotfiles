@@ -1,5 +1,10 @@
 # PhantomRelay SaaS — CI/CD Pipeline
 # Triggered on push to main and pull requests
+#
+# SECURITY NOTE: Actions are pinned to tags, not SHA commits.
+# Before production release, pin all third-party actions to their SHA.
+# Use: https://github.com/renovatebot/renovate or manual SHA lookup.
+# Critical: aquasecurity/trivy-action, docker/* actions
 
 name: CI
 
@@ -26,8 +31,12 @@ jobs:
   lint-and-typecheck:
     name: Lint & Typecheck
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
       - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
 
       - uses: pnpm/action-setup@v4
         with:
@@ -61,6 +70,8 @@ jobs:
       security-events: write
     steps:
       - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
 
       - name: Initialize CodeQL
         uses: github/codeql-action/init@v3
@@ -90,8 +101,12 @@ jobs:
   audit:
     name: Dependency Audit
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
       - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
 
       - uses: pnpm/action-setup@v4
         with:
@@ -105,7 +120,7 @@ jobs:
       - run: pnpm install --frozen-lockfile
 
       - name: Audit dependencies
-        run: pnpm audit --audit-level=high
+        run: pnpm audit --audit-level=moderate
 
   # -------------------------------------------------------
   # Tests (needs lint to pass first)
@@ -114,6 +129,8 @@ jobs:
     name: Test
     needs: lint-and-typecheck
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
 
     services:
       postgres:
@@ -134,9 +151,12 @@ jobs:
       DATABASE_URL: postgresql://phantom:phantom_dev@localhost:5432/phantomrelay
       JWT_SECRET: ci-test-secret
       JWT_REFRESH_SECRET: ci-test-refresh-secret
+      ALLOWED_ORIGINS: http://localhost:4321
 
     steps:
       - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
 
       - uses: pnpm/action-setup@v4
         with:
@@ -151,6 +171,9 @@ jobs:
 
       - name: Generate Prisma client
         run: pnpm --filter @phantomrelay-saas/api prisma:generate
+
+      - name: TypeScript typecheck
+        run: pnpm --filter @phantomrelay-saas/api exec tsc --noEmit
 
       - name: Run tests
         run: pnpm --filter @phantomrelay-saas/api test -- --coverage
@@ -189,6 +212,8 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
 
       - uses: docker/setup-buildx-action@v3
 

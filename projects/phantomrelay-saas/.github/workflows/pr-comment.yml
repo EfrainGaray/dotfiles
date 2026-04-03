@@ -1,5 +1,10 @@
 # PhantomRelay SaaS — PR Comment with build info
 # Posts image sizes, test results, and coverage link on PRs
+#
+# SECURITY NOTE: Actions are pinned to tags, not SHA commits.
+# Before production release, pin all third-party actions to their SHA.
+# Use: https://github.com/renovatebot/renovate or manual SHA lookup.
+# Critical: aquasecurity/trivy-action, docker/* actions
 
 name: PR Comment
 
@@ -8,15 +13,14 @@ on:
     workflows: [CI]
     types: [completed]
 
-permissions:
-  pull-requests: write
-  actions: read
-
 jobs:
   comment:
     name: Post PR Summary
     if: github.event.workflow_run.event == 'pull_request'
     runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+      actions: read
     steps:
       - name: Get PR number
         id: pr
