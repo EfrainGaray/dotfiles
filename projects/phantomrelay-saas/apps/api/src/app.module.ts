@@ -14,6 +14,7 @@ import { MonitoringModule } from './monitoring/monitoring.module';
 import { ProxiesModule } from './proxies/proxies.module';
 import { ApiKeysModule } from './api-keys/api-keys.module';
 import { EventsModule } from './common/events/events.module';
+import { BullBoardSetupModule } from './bull-board/bull-board.module';
 
 @Module({
   imports: [
@@ -39,6 +40,7 @@ import { EventsModule } from './common/events/events.module';
     ProxiesModule,
     ApiKeysModule,
     EventsModule,
+    BullBoardSetupModule,
   ],
 })
 export class AppModule {}

@@ -2,6 +2,7 @@ import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
 import * as cookieParser from 'cookie-parser';
 import helmet from 'helmet';
+import { Request, Response, NextFunction } from 'express';
 import { AppModule } from './app.module';
 import { HttpExceptionFilter } from './common/filters/http-exception.filter';
 import { LoggingInterceptor } from './common/interceptors/logging.interceptor';
@@ -36,6 +37,19 @@ async function bootstrap() {
   app.useGlobalInterceptors(new LoggingInterceptor(), new TransformInterceptor());
 
   app.setGlobalPrefix('api');
+
+  // Queue dashboard — admin-protected, optional via feature flag
+  const queueDashboardEnabled = process.env.QUEUE_DASHBOARD_ENABLED !== 'false';
+  if (queueDashboardEnabled) {
+    const adminKey = process.env.ADMIN_KEY;
+    app.use('/queues', (req: Request, res: Response, next: NextFunction) => {
+      if (!adminKey || req.headers['x-admin-key'] !== adminKey) {
+        res.status(401).json({ error: 'Unauthorized' });
+        return;
+      }
+      next();
+    });
+  }
 
   await app.listen(3001);
   console.log('PhantomRelay API running on http://localhost:3001');
