@@ -1,10 +1,23 @@
 // API Client for PhantomRelay SaaS
 // Typed fetch wrapper with auth token management
 
-const BASE_URL =
-  (typeof import.meta !== "undefined" &&
-    (import.meta.env as Record<string, string>)?.PUBLIC_API_URL) ||
-  "http://localhost:3001/api";
+function getBaseUrl(): string {
+  if (typeof import.meta !== "undefined") {
+    const envUrl = (import.meta.env as Record<string, string>)?.PUBLIC_API_URL;
+    if (envUrl) return envUrl;
+  }
+  if (typeof window !== "undefined") {
+    const host = window.location.hostname;
+    return `http://${host}:3001/api`;
+  }
+  return "http://localhost:3001/api";
+}
+
+let _baseUrl: string | null = null;
+function BASE_URL(): string {
+  if (!_baseUrl) _baseUrl = getBaseUrl();
+  return _baseUrl;
+}
 
 // --- Token helpers ---
 
@@ -55,7 +68,7 @@ async function apiFetch<T>(
     headers["Authorization"] = `Bearer ${token}`;
   }
 
-  const response = await fetch(`${BASE_URL}${path}`, {
+  const response = await fetch(`${BASE_URL()}${path}`, {
     ...options,
     headers,
   });
@@ -83,13 +96,18 @@ async function apiFetch<T>(
     return undefined as T;
   }
 
-  return response.json() as Promise<T>;
+  const json = await response.json();
+  // Unwrap NestJS TransformInterceptor envelope { data, timestamp }
+  if (json && typeof json === "object" && "data" in json && "timestamp" in json) {
+    return json.data as T;
+  }
+  return json as T;
 }
 
 // --- Auth types ---
 
 export interface AuthResponse {
-  access_token: string;
+  accessToken: string;
   user: User;
 }
 
@@ -199,7 +217,7 @@ export async function login(
     method: "POST",
     body: JSON.stringify({ email, password }),
   });
-  setToken(data.access_token);
+  setToken(data.accessToken);
   return data;
 }
 
@@ -212,7 +230,7 @@ export async function register(
     method: "POST",
     body: JSON.stringify({ email, password, name }),
   });
-  setToken(data.access_token);
+  setToken(data.accessToken);
   return data;
 }
 

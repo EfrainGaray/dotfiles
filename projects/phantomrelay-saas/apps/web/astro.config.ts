@@ -14,6 +14,10 @@ export default defineConfig({
       prefixDefaultLocale: false,
     },
   },
+  server: {
+    host: "0.0.0.0",
+    port: 4322,
+  },
   vite: {
     plugins: [tailwindcss()],
   },
