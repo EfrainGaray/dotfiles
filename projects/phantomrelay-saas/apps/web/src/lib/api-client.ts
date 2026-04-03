@@ -302,13 +302,13 @@ export async function getRunStats(): Promise<RunStats> {
 // --- Proxy methods ---
 
 export async function getProxyPools(): Promise<ProxyPool[]> {
-  return apiFetch<ProxyPool[]>("/proxy-pools");
+  return apiFetch<ProxyPool[]>("/proxies");
 }
 
 export async function createProxyPool(
   data: CreateProxyPoolData
 ): Promise<ProxyPool> {
-  return apiFetch<ProxyPool>("/proxy-pools", {
+  return apiFetch<ProxyPool>("/proxies", {
     method: "POST",
     body: JSON.stringify(data),
   });
@@ -450,7 +450,7 @@ export async function getMonitoringHealth(): Promise<MonitoringHealth> {
 // --- Proxy extended methods ---
 
 export async function deleteProxyPool(id: string): Promise<void> {
-  return apiFetch<void>(`/proxy-pools/${id}`, {
+  return apiFetch<void>(`/proxies/${id}`, {
     method: "DELETE",
   });
 }
@@ -477,7 +477,7 @@ export interface AddProxyData {
 }
 
 export async function addProxy(poolId: string, data: AddProxyData): Promise<Proxy> {
-  return apiFetch<Proxy>(`/proxy-pools/${poolId}/proxies`, {
+  return apiFetch<Proxy>(`/proxies/${poolId}/proxies`, {
     method: "POST",
     body: JSON.stringify(data),
   });
@@ -514,7 +514,7 @@ export interface ProxyPoolDetail {
 }
 
 export async function getProxyPoolDetails(): Promise<ProxyPoolDetail[]> {
-  return apiFetch<ProxyPoolDetail[]>("/proxy-pools/details");
+  return apiFetch<ProxyPoolDetail[]>("/proxies/details");
 }
 
 // --- Notification types ---
