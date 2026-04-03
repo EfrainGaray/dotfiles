@@ -17,7 +17,7 @@ env:
   NODE_VERSION: "20"
   PNPM_VERSION: "9.15.0"
   REGISTRY: ghcr.io
-  IMAGE_PREFIX: ghcr.io/${{ github.repository }}
+  IMAGE_PREFIX: ghcr.io/${{ github.repository_owner }}
 
 jobs:
   # -------------------------------------------------------
@@ -48,6 +48,64 @@ jobs:
           PID_WEB=$!
           wait $PID_API || exit 1
           wait $PID_WEB || exit 1
+
+  # -------------------------------------------------------
+  # CodeQL SAST — TypeScript/JavaScript
+  # -------------------------------------------------------
+  codeql:
+    name: CodeQL SAST
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      contents: read
+      security-events: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v3
+        with:
+          languages: javascript-typescript
+          queries: security-extended
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v3
+        with:
+          category: /language:javascript-typescript
+
+  # -------------------------------------------------------
+  # Dependency audit
+  # -------------------------------------------------------
+  audit:
+    name: Dependency Audit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Audit dependencies
+        run: pnpm audit --audit-level=high
 
   # -------------------------------------------------------
   # Tests (needs lint to pass first)
@@ -107,55 +165,42 @@ jobs:
           if-no-files-found: ignore
 
   # -------------------------------------------------------
-  # Dependency audit
-  # -------------------------------------------------------
-  audit:
-    name: Dependency Audit
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: pnpm/action-setup@v4
-        with:
-          version: ${{ env.PNPM_VERSION }}
-
-      - uses: actions/setup-node@v4
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: pnpm
-
-      - run: pnpm install --frozen-lockfile
-
-      - name: Audit dependencies
-        run: pnpm audit --audit-level=high
-
-  # -------------------------------------------------------
-  # Docker build (matrix: api + web)
+  # Docker build + Trivy scan + GHCR push (matrix: api + web)
   # -------------------------------------------------------
   docker-build:
     name: Docker Build (${{ matrix.app }})
     needs: test
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+      security-events: write
     strategy:
+      fail-fast: false
       matrix:
         app: [api, web]
         include:
           - app: api
             dockerfile: docker/Dockerfile.api
-            image_name: phantomrelay-api
+            image_name: phantomrelay-saas-api
           - app: web
             dockerfile: docker/Dockerfile.web
-            image_name: phantomrelay-web
-    outputs:
-      api-size: ${{ steps.size-api.outputs.size }}
-      web-size: ${{ steps.size-web.outputs.size }}
+            image_name: phantomrelay-saas-web
 
     steps:
       - uses: actions/checkout@v4
 
       - uses: docker/setup-buildx-action@v3
 
-      - name: Build image
+      - name: Log in to GHCR
+        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build image (load locally)
         uses: docker/build-push-action@v6
         with:
           context: .
@@ -166,63 +211,54 @@ jobs:
           cache-from: type=gha,scope=${{ matrix.app }}
           cache-to: type=gha,mode=max,scope=${{ matrix.app }}
 
-      - name: Report image size
-        id: size-${{ matrix.app }}
+      - name: Trivy vulnerability scan
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          image-ref: ${{ matrix.image_name }}:ci
+          format: sarif
+          output: trivy-${{ matrix.app }}.sarif
+          severity: CRITICAL,HIGH
+          exit-code: "1"
+          ignore-unfixed: true
+
+      - name: Upload Trivy SARIF to GitHub Security
+        if: always()
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: trivy-${{ matrix.app }}.sarif
+          category: trivy-${{ matrix.app }}
+
+      - name: Get image size
+        id: image-size
         run: |
-          SIZE=$(docker image inspect ${{ matrix.image_name }}:ci --format '{{.Size}}' | numfmt --to=iec-i --suffix=B)
-          echo "size=$SIZE" >> "$GITHUB_OUTPUT"
-          echo "### ${{ matrix.image_name }} image size: $SIZE" >> "$GITHUB_STEP_SUMMARY"
+          SIZE_BYTES=$(docker image inspect ${{ matrix.image_name }}:ci --format '{{.Size}}')
+          SIZE_HUMAN=$(echo "$SIZE_BYTES" | numfmt --to=iec-i --suffix=B)
+          echo "bytes=$SIZE_BYTES" >> "$GITHUB_OUTPUT"
+          echo "human=$SIZE_HUMAN" >> "$GITHUB_OUTPUT"
+          echo "### ${{ matrix.image_name }} image size: $SIZE_HUMAN" >> "$GITHUB_STEP_SUMMARY"
 
-  # -------------------------------------------------------
-  # Docker push (only on push to main)
-  # -------------------------------------------------------
-  docker-push:
-    name: Docker Push (${{ matrix.app }})
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    needs: docker-build
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      packages: write
-    strategy:
-      matrix:
-        app: [api, web]
-        include:
-          - app: api
-            dockerfile: docker/Dockerfile.api
-            image_name: phantomrelay-api
-          - app: web
-            dockerfile: docker/Dockerfile.web
-            image_name: phantomrelay-web
+      - name: Save image size as artifact
+        run: |
+          mkdir -p image-sizes
+          echo '{"app":"${{ matrix.app }}","image":"${{ matrix.image_name }}","size":"${{ steps.image-size.outputs.human }}","bytes":${{ steps.image-size.outputs.bytes }}}' \
+            > image-sizes/${{ matrix.app }}.json
 
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: docker/setup-buildx-action@v3
-
-      - name: Log in to GHCR
-        uses: docker/login-action@v3
+      - name: Upload image size artifact
+        uses: actions/upload-artifact@v4
         with:
-          registry: ${{ env.REGISTRY }}
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
+          name: image-size-${{ matrix.app }}
+          path: image-sizes/${{ matrix.app }}.json
+          retention-days: 7
 
-      - name: Generate tags
-        id: meta
-        uses: docker/metadata-action@v5
-        with:
-          images: ${{ env.IMAGE_PREFIX }}/${{ matrix.image_name }}
-          tags: |
-            type=sha,prefix=sha-,format=short
-            type=raw,value=latest
-
-      - name: Build and push
+      - name: Push to GHCR (main only)
+        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
         uses: docker/build-push-action@v6
         with:
           context: .
           file: ${{ matrix.dockerfile }}
           push: true
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
+          tags: |
+            ${{ env.IMAGE_PREFIX }}/${{ matrix.image_name }}:${{ github.sha }}
+            ${{ env.IMAGE_PREFIX }}/${{ matrix.image_name }}:latest
           cache-from: type=gha,scope=${{ matrix.app }}
           cache-to: type=gha,mode=max,scope=${{ matrix.app }}
