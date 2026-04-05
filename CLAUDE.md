@@ -209,6 +209,7 @@ Cache de BuildKit en Actions con `cache-from` / `cache-to`.
 | `@reviewer` | Code review adaptado a la fase actual del proyecto |
 | `@security` | SAST, OWASP, audit de deps, secrets, image scanning |
 | `@qa-engineer` | QA automatizado con PhantomRelay, browser testing, GitHub Issues reporter |
+| `@design-engineer` | Design systems, visual identity, tokens, referencia a 54 empresas world-class |
 
 ---
 
@@ -243,8 +244,8 @@ Servidor MCP conectado a la API de Hostinger. Úsalo para gestionar VPS, dominio
 ```
 dotfiles/
 ├── CLAUDE.md                  ← este archivo
-├── claude/
-│   ├── agents/                ← definición de cada agente
+├── .claude/
+│   ├── agents/                ← agentes disponibles en Claude Code
 │   │   ├── architect.md
 │   │   ├── rust-engineer.md
 │   │   ├── backend-engineer.md
@@ -258,18 +259,24 @@ dotfiles/
 │   │   ├── devops.md
 │   │   ├── reviewer.md
 │   │   ├── security.md
-│   │   └── qa-engineer.md
-│   └── commands/              ← comandos slash personalizados
-│       ├── new-project.md
-│       ├── phase-up.md
-│       ├── review.md
-│       ├── audit.md
-│       └── qa-run.md
+│   │   ├── qa-engineer.md
+│   │   └── design-engineer.md
+│   ├── commands/              ← comandos slash personalizados
+│   │   ├── new-project.md
+│   │   ├── phase-up.md
+│   │   ├── review.md
+│   │   ├── audit.md
+│   │   └── qa-run.md
+│   └── design-systems/        ← 54 DESIGN.md de empresas world-class (awesome-design-md)
+│       ├── stripe/DESIGN.md
+│       ├── linear.app/DESIGN.md
+│       ├── vercel/DESIGN.md
+│       └── ... 51 más
 ├── projects/                  ← submódulos de proyectos
-│   ├── nextcom/
-│   ├── sysbase-ia/
 │   ├── agatha/
-│   └── ...
+│   ├── phantomrelay/
+│   ├── phantomrelay-saas/
+│   └── sysbase/
 └── scripts/
     └── setup.sh               ← bootstrap máquina nueva
 ```

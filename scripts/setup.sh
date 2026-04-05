@@ -12,7 +12,7 @@ echo ""
 # Git config
 echo "--- Configurando Git ---"
 git config --global user.name "Efrain Garay"
-git config --global user.email "efrain@tudominio.com"
+git config --global user.email "efrain.garay@correoaiep.cl"
 git config --global core.editor "code --wait"
 git config --global init.defaultBranch main
 git config --global pull.rebase true
@@ -106,6 +106,29 @@ echo ""
 
 echo "Mobile:"
 check_tool flutter "Flutter SDK"
+echo ""
+
+echo "Claude Code plugins:"
+if command -v claude &> /dev/null; then
+  PLUGINS=(
+    "rust-analyzer-lsp"
+    "gopls-lsp"
+    "typescript-lsp"
+    "frontend-design"
+    "github"
+    "sonarqube-agent-plugins"
+  )
+  for plugin in "${PLUGINS[@]}"; do
+    if claude plugin list 2>/dev/null | grep -q "$plugin"; then
+      echo "  [OK]      $plugin — ya instalado"
+    else
+      echo "  [INSTALL] $plugin..."
+      claude plugin install "$plugin" 2>&1 | tail -1
+    fi
+  done
+else
+  echo "  [SKIP]    claude CLI no encontrado — instala Claude Code primero"
+fi
 echo ""
 
 echo "================================================"

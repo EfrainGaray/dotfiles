@@ -1,1 +1,13 @@
 scripts/node_modules/
+
+# OS artifacts
+.DS_Store
+**/.DS_Store
+
+# IDE
+.idea/
+.vscode/
+
+# Claude Code runtime
+.claude/worktrees/
+.claude/settings.local.json
