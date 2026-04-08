@@ -1,0 +1,23 @@
+#!/usr/bin/env bash
+# claude-local — Run Claude Code with Ollama backend on Fedora (Tailscale)
+# Usage: claude-local [claude options...]
+# Examples:
+#   claude-local
+#   claude-local --model gemma4:26b
+#   claude-local -p "explain this code"
+#   claude-local --model juilpark/gemma-4-26B-A4B-it-heretic:q4_k_m
+
+OLLAMA_HOST="${OLLAMA_HOST:-100.109.82.18}"
+OLLAMA_PORT="${OLLAMA_PORT:-11434}"
+
+export ANTHROPIC_BASE_URL="http://${OLLAMA_HOST}:${OLLAMA_PORT}"
+export ANTHROPIC_AUTH_TOKEN="ollama"
+export ANTHROPIC_API_KEY=""
+export DISABLE_PROMPT_CACHING=1
+
+# Default model if --model not passed
+if [[ ! " $* " =~ " --model " ]] && [[ ! " $* " =~ " -m " ]]; then
+  exec claude --model gemma4:26b "$@"
+else
+  exec claude "$@"
+fi
