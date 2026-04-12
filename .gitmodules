@@ -10,3 +10,6 @@
 [submodule "projects/sysbase"]
 	path = projects/sysbase
 	url = https://github.com/EfrainGaray/sysbase.git
+[submodule "projects/flappy-neat"]
+	path = projects/flappy-neat
+	url = https://github.com/EfrainGaray/flappy-neat.git
