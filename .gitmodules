@@ -13,3 +13,6 @@
 [submodule "projects/flappy-neat"]
 	path = projects/flappy-neat
 	url = https://github.com/EfrainGaray/flappy-neat.git
+[submodule "projects/neat-racer"]
+	path = projects/neat-racer
+	url = https://github.com/EfrainGaray/neat-racer.git
